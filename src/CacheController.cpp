@@ -1,5 +1,5 @@
 /*
-	Cache Simulator (Starter Code) by Justin Goins
+	Cache Simulator by Alex Grejuc
 	Oregon State University
 	Fall Term 2019
 */
