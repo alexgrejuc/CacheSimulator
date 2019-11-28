@@ -1,0 +1,6 @@
+*.swp
+*.vs
+*.sln
+*.vcxproj*
+bin*
+obj*
