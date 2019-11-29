@@ -12,14 +12,14 @@
 
 using namespace std;
 
-CacheController::CacheController(CacheInfo ci, string tracefile) {
+CacheController::CacheController(CacheInfo cacheInfo, string traceFile) {
 	// store the configuration info
-	this->ci = ci;
-	this->inputFile = tracefile;
+	this->cacheInfo = cacheInfo;
+	this->inputFile = traceFile;
 	this->outputFile = this->inputFile + ".out";
 	// compute the other cache parameters
-	this->ci.numByteOffsetBits = log2(ci.blockSize);
-	this->ci.numSetIndexBits = log2(ci.numberSets);
+	this->cacheInfo.numByteOffsetBits = log2(cacheInfo.blockSize);
+	this->cacheInfo.numSetIndexBits = log2(cacheInfo.numberSets);
 	// initialize the counters
 	this->globalCycles = 0;
 	this->globalHits = 0;
@@ -46,7 +46,7 @@ CacheController::CacheController(CacheInfo ci, string tracefile) {
 	Starts reading the tracefile and processing memory operations.
 */
 void CacheController::runTracefile() {
-	cout << "Input tracefile: " << inputFile << endl;
+	cout << "Input trace file: " << inputFile << endl;
 	cout << "Output file name: " << outputFile << endl;
 	
 	// process each input line
@@ -107,7 +107,7 @@ void CacheController::runTracefile() {
 			totalCycles += response.cycles;
 			outfile << " " << totalCycles << tmpString;
 		} else {
-			throw runtime_error("Encountered unknown line format in tracefile.");
+			throw runtime_error("Encountered unknown line format in trace file.");
 		}
 		outfile << endl;
 	}

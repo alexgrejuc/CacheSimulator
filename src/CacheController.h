@@ -22,7 +22,7 @@ class CacheController {
 		unsigned int globalEvictions;
 		std::string inputFile, outputFile;
 
-		CacheInfo ci;
+		CacheInfo cacheInfo;
 
 		// function to allow read or write access to the cache
 		void cacheAccess(CacheResponse*, bool, unsigned long int);

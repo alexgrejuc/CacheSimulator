@@ -1,5 +1,5 @@
 /*
-	Cache Simulator (Starter Code) by Justin Goins
+	Cache Simulator written by Alex Grejuc
 	Oregon State University
 	Fall Term 2019
 */
@@ -16,11 +16,11 @@ using namespace std;
 
 /*
 	This function creates the cache and starts the simulator.
-	Accepts core ID number, configuration info, and the name of the tracefile to read.
+	Accepts core ID number, configuration info, and the name of the trace file to read.
 */
-void initializeCache(int id, CacheInfo config, string tracefile) {
-	CacheController singlecore = CacheController(config, tracefile);
-	singlecore.runTracefile();
+void initializeCache(int id, CacheInfo config, string traceFile) {
+	CacheController singleCore = CacheController(config, traceFile);
+	singleCore.runTracefile();
 }
 
 /*
@@ -28,44 +28,40 @@ void initializeCache(int id, CacheInfo config, string tracefile) {
 	The code then initializes a cache simulator and reads the requested trace file(s).
 */
 int main(int argc, char* argv[]) {
-	CacheInfo config;
 	if (argc < 3) {
 		cerr << "You need at least two command line arguments. You should provide a configuration file and at least one trace file." << endl;
 		return 1;
 	}
 
-	// determine how many cache levels the system is using
-	unsigned int numCacheLevels;
-
-	// read the configuration file
 	cout << "Reading config file: " << argv[1] << endl;
-	ifstream infile(argv[1]);
+	ifstream configFile(argv[1]);
+
+	CacheInfo config;
+	unsigned int numCacheLevels;
 	unsigned int tmp;
-	infile >> numCacheLevels;
-	infile >> config.memoryAccessCycles;
-	infile >> config.numberSets;
-	infile >> config.blockSize;
-	infile >> config.associativity;
-	infile >> tmp;
-	config.rp = static_cast<ReplacementPolicy>(tmp);
-	infile >> tmp;
-	config.wp = static_cast<WritePolicy>(tmp);
-	infile >> config.cacheAccessCycles;
-	infile.close();
-	
-	// Examples of how you can access the configuration file information
+
+	configFile >> numCacheLevels;
 	cout << "System has " << numCacheLevels << " cache(s)." << endl;
+
+	configFile >> config.memoryAccessCycles;
+	configFile >> config.numberSets;
+	configFile >> config.blockSize;
+	configFile >> config.associativity;
+	configFile >> tmp;
+	config.rp = static_cast<ReplacementPolicy>(tmp);
+	configFile >> tmp;
+	config.wp = static_cast<WritePolicy>(tmp);
+	configFile >> config.cacheAccessCycles;
+
+	configFile.close();
+	
 	cout << config.numberSets << " sets with " << config.blockSize << " bytes in each block. N = " << config.associativity << endl;
 
-	if (config.rp == ReplacementPolicy::Random)
-		cout << "Using random replacement protocol" << endl;
-	else
-		cout << "Using LRU protocol" << endl;
+	if (config.rp == ReplacementPolicy::Random) cout << "Using random replacement protocol" << endl;
+	else cout << "Using LRU protocol" << endl;
 	
-	if (config.wp == WritePolicy::WriteThrough)
-		cout << "Using write-through policy" << endl;
-	else
-		cout << "Using write-back policy" << endl;
+	if (config.wp == WritePolicy::WriteThrough) cout << "Using write-through policy" << endl;
+	else cout << "Using write-back policy" << endl;
 
 	// For multithreaded operation you can do something like the following...
 	// Note that this just shows you how to launch a thread and doesn't address

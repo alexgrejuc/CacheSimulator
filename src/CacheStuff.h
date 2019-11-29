@@ -6,6 +6,7 @@
 
 #ifndef _CACHESTUFF_H_
 #define _CACHESTUFF_H_
+#include <ctime>
 
 enum class ReplacementPolicy {
 	Random,
@@ -37,5 +38,33 @@ struct CacheResponse {
 	bool dirtyEviction; // was the evicted block marked as dirty?
 	unsigned int cycles; // how many clock cycles did this operation take?
 };
+
+class Entry
+{
+	public: 
+		Entry(); 
+		bool valid;
+		bool dirty;
+		unsigned long long tag;
+};
+
+inline Entry::Entry()
+{
+	valid = dirty = false;
+	tag = 0; 
+}
+
+class TimedEntry : public Entry
+{
+public:
+	clock_t lastUsed;
+	TimedEntry(); 
+};
+
+inline TimedEntry::TimedEntry()
+{
+	lastUsed = 0; 
+}
+
 
 #endif //CACHESTUFF
