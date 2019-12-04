@@ -1,6 +1,7 @@
 #include "MemoryUnit.h"
 #include <iostream>
 #include <sstream>
+#include "CacheStuff.h"
 
 using namespace std; 
 
@@ -43,11 +44,11 @@ void Cache::read(unsigned long long address) {
 	
 	addressInfo info = splitAddress(address);
 
-	stringstream displayInfo;
+	ostringstream displayInfo;
 	displayInfo << address << " in L" << config.level << endl; 
 
 	if(sets[info.setIndex].find(info.tag) != sets[info.setIndex].end()) {
-		cout << "Found " << displayInfo; 
+		cout << "Found " << displayInfo.str(); 
 		lastResponse.hit = true; 
 	}
 	else {
