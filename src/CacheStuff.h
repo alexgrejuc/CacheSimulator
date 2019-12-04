@@ -18,8 +18,13 @@ enum class WritePolicy {
 	WriteBack
 };
 
+struct addressInfo {
+	unsigned long long tag;
+	unsigned long long setIndex; 
+};
+
 // structure to hold information about a particular cache
-struct CacheInfo {
+struct CacheConfig {
 	unsigned int numByteOffsetBits;
 	unsigned int numSetIndexBits;
 	unsigned int numberSets; // how many sets are in the cache
@@ -28,7 +33,8 @@ struct CacheInfo {
 	ReplacementPolicy rp;
 	WritePolicy wp;
 	unsigned int cacheAccessCycles;
-	unsigned int memoryAccessCycles;
+	unsigned int level; // the level of the cache (ex: L1, L2) 
+	//unsigned int memoryAccessCycles;
 };
 
 // this structure is filled with information about each memory access
@@ -56,9 +62,9 @@ inline Entry::Entry()
 
 class TimedEntry : public Entry
 {
-public:
-	clock_t lastUsed;
-	TimedEntry(); 
+	public:
+		clock_t lastUsed;
+		TimedEntry(); 
 };
 
 inline TimedEntry::TimedEntry()

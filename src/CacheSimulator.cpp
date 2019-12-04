@@ -11,6 +11,7 @@
 #include <iostream>
 #include <fstream>
 #include <thread>
+#include <list>
 
 using namespace std;
 
@@ -18,9 +19,9 @@ using namespace std;
 	This function creates the cache and starts the simulator.
 	Accepts core ID number, configuration info, and the name of the trace file to read.
 */
-void initializeCache(int id, CacheInfo config, string traceFile) {
-	CacheController singleCore = CacheController(config, traceFile);
-	singleCore.runTracefile();
+void initializeCache(list<CacheConfig> config, string traceFile) {
+	CacheController controller = CacheController(config, traceFile);
+	controller.runTracefile();
 }
 
 /*
@@ -36,43 +37,58 @@ int main(int argc, char* argv[]) {
 	cout << "Reading config file: " << argv[1] << endl;
 	ifstream configFile(argv[1]);
 
-	CacheInfo config;
 	unsigned int numCacheLevels;
+	unsigned int memoryAccessCycles; 
 	unsigned int tmp;
 
 	configFile >> numCacheLevels;
 	cout << "System has " << numCacheLevels << " cache(s)." << endl;
 
-	configFile >> config.memoryAccessCycles;
-	configFile >> config.numberSets;
-	configFile >> config.blockSize;
-	configFile >> config.associativity;
-	configFile >> tmp;
-	config.rp = static_cast<ReplacementPolicy>(tmp);
-	configFile >> tmp;
-	config.wp = static_cast<WritePolicy>(tmp);
-	configFile >> config.cacheAccessCycles;
+	configFile >> memoryAccessCycles;
+	cout << "System has " << memoryAccessCycles << " cycles per memory access"; 
+
+	list<CacheConfig> cacheConfigs;
+
+	// read in the configuration for each cache 
+	for(unsigned int i = 0; i < numCacheLevels; ++i) {
+		CacheConfig config;
+		configFile >> config.numberSets;
+		configFile >> config.blockSize;
+		configFile >> config.associativity;
+		configFile >> tmp;
+		config.rp = static_cast<ReplacementPolicy>(tmp);
+		configFile >> tmp;
+		config.wp = static_cast<WritePolicy>(tmp);
+		configFile >> config.cacheAccessCycles;
+		config.level = i + 1; 
+
+		cacheConfigs.push_back(config);
+	}
+
+	// print configurations for each cache 
+	for (auto config : cacheConfigs){
+		cout << "L" << config.level << " cache: " << config.numberSets << " sets with ";
+		cout << config.blockSize << " bytes in each block. N = " << config.associativity << endl;
+
+		if (config.rp == ReplacementPolicy::Random) {
+			cout << "Using random replacement protocol" << endl;
+		}
+		else {
+			cout << "Using LRU protocol" << endl;
+		}
+		
+		if (config.wp == WritePolicy::WriteThrough) {
+			cout << "Using write-through policy" << endl;
+		}
+		else {
+			cout << "Using write-back policy" << endl;
+		}
+	}
 
 	configFile.close();
 	
-	cout << config.numberSets << " sets with " << config.blockSize << " bytes in each block. N = " << config.associativity << endl;
-
-	if (config.rp == ReplacementPolicy::Random) cout << "Using random replacement protocol" << endl;
-	else cout << "Using LRU protocol" << endl;
-	
-	if (config.wp == WritePolicy::WriteThrough) cout << "Using write-through policy" << endl;
-	else cout << "Using write-back policy" << endl;
-
-	// For multithreaded operation you can do something like the following...
-	// Note that this just shows you how to launch a thread and doesn't address
-	// the complexities of how the threads communicate.
-	// string tracefile(argv[2]);
-	// thread t = thread(initializeCache, 0, config, tracefile);
-	// t.detach();
-
-	// For singlethreaded operation, you can use this approach:
 	string tracefile(argv[2]);
-	initializeCache(0, config, tracefile);
+	initializeCache(cacheConfigs, tracefile);
 
 	return 0;
 }

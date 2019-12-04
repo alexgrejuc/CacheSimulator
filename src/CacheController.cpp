@@ -12,34 +12,16 @@
 
 using namespace std;
 
-CacheController::CacheController(CacheInfo cacheInfo, string traceFile) {
+CacheController::CacheController(list<CacheConfig> cacheConfigs, string traceFile) {
 	// store the configuration info
-	this->cacheInfo = cacheInfo;
-	this->inputFile = traceFile;
-	this->outputFile = this->inputFile + ".out";
-	// compute the other cache parameters
-	this->cacheInfo.numByteOffsetBits = log2(cacheInfo.blockSize);
-	this->cacheInfo.numSetIndexBits = log2(cacheInfo.numberSets);
+	inputFile = traceFile;
+	outputFile = inputFile + ".out";
+
 	// initialize the counters
-	this->globalCycles = 0;
-	this->globalHits = 0;
-	this->globalMisses = 0;
-	this->globalEvictions = 0;
-	
-	// create your cache structure
-	// ...
-
-	// manual test code to see if the cache is behaving properly
-	// will need to be changed slightly to match the function prototype
-	/*
-	cacheAccess(false, 0);
-	cacheAccess(false, 128);
-	cacheAccess(false, 256);
-
-	cacheAccess(false, 0);
-	cacheAccess(false, 128);
-	cacheAccess(false, 256);
-	*/
+	globalCycles = 0;
+	globalHits = 0;
+	globalMisses = 0;
+	globalEvictions = 0;	
 }
 
 /*
@@ -67,7 +49,7 @@ void CacheController::runTracefile() {
 		// these strings will be used in the file output
 		string opString, activityString;
 		smatch match; // will eventually hold the hexadecimal address string
-		unsigned long int address;
+		unsigned long long address;
 		// create a struct to track cache responses
 		CacheResponse response;
 
@@ -99,7 +81,7 @@ void CacheController::runTracefile() {
 			string tmpString; // will be used during the file output
 			tmpString.append(response.hit ? " hit" : " miss");
 			tmpString.append(response.eviction ? " eviction" : "");
-			unsigned long int totalCycles = response.cycles; // track the number of cycles used for both stages of the modify operation
+			unsigned long long totalCycles = response.cycles; // track the number of cycles used for both stages of the modify operation
 			// now process the write operation
 			cacheAccess(&response, true, address);
 			tmpString.append(response.hit ? " hit" : " miss");
@@ -120,24 +102,10 @@ void CacheController::runTracefile() {
 }
 
 /*
-	Calculate the block index and tag for a specified address.
-*/
-CacheController::AddressInfo CacheController::getAddressInfo(unsigned long int address) {
-	AddressInfo ai;
-	// this code should be changed to assign the proper index and tag
-	return ai;
-}
-
-/*
 	This function allows us to read or write to the cache.
 	The read or write is indicated by isWrite.
 */
-void CacheController::cacheAccess(CacheResponse* response, bool isWrite, unsigned long int address) {
-	// determine the index and tag
-	AddressInfo ai = getAddressInfo(address);
-
-	cout << "\tSet index: " << ai.setIndex << ", tag: " << ai.tag << endl;
-	
+void CacheController::cacheAccess(CacheResponse* response, bool isWrite, unsigned long long address) {
 	// your code needs to update the global counters that track the number of hits, misses, and evictions
 
 	if (response->hit)
@@ -146,8 +114,6 @@ void CacheController::cacheAccess(CacheResponse* response, bool isWrite, unsigne
 		cout << "Address " << std::hex << address << " was a miss." << endl;
 
 	cout << "-----------------------------------------" << endl;
-
-	return;
 }
 
 /*
