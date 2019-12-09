@@ -32,23 +32,20 @@ void MemoryUnit::say() {
 }
 
 MemoryUnit::MemoryUnit() {
-	
 }
 
 MemoryUnit::MemoryUnit(unsigned int memoryAccessCycles) {
 	this->memoryAccessCycles = memoryAccessCycles; 
 }
 
+MemoryUnit::~MemoryUnit() {}
+
 Cache::Cache(CacheConfig config, MemoryUnit* lowerLevel) {
 	this->config = config;
 	this->lowerLevel = lowerLevel; 
 
-	for(int i = 0; i < config.numberSets; ++i){
+	for(unsigned int i = 0; i < config.numberSets; ++i){
 		sets.emplace_back();
-	}
-
-	for(int i = 0; i < config.numberSets; ++i) {
-		auto v = sets[i].addressMap.find(0); 
 	}
 }
 
@@ -61,7 +58,6 @@ addressInfo Cache::splitAddress(unsigned long long address) {
 	addressInfo a;
 	unsigned long long blockAddress = address / config.blockSize;
 	unsigned long long setIndex = blockAddress % config.numberSets; 
-	unsigned long long numSetIndexBits = ceil(log2(config.associativity));
 	unsigned long long tag = address / (config.numberSets * config.blockSize); // truncate the last n bits  
 	a.setIndex = setIndex;
 	a.tag = tag;
@@ -88,6 +84,8 @@ void Cache::read(unsigned long long address) {
 		lowerLevel->read(address);
 		lastResponse.hit = false; 
 	}
+
+	lastResponse.dirtyEviction = lastResponse.eviction = false; 
 }
 
 void Cache::write(unsigned long long address) {
@@ -109,7 +107,8 @@ void Cache::write(unsigned long long address) {
 			sets[info.setIndex].addressMap[info.tag] = --sets[info.setIndex].data.end();	// map value points to the updated position of the block 
 		}
 
-		// todo: implement write through and write back 
+		// todo: implement write through and write back
+		lastResponse.eviction = lastResponse.dirtyEviction = false; 
 	}
 	else {
 		cout << "Missed " << displayInfo.str();

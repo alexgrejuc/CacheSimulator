@@ -18,6 +18,7 @@ public:
 	CacheResponse getLastResponse();
 	MemoryUnit(unsigned int memoryAccessCycles); 
 	MemoryUnit();
+	virtual ~MemoryUnit(); 
 	virtual void say(); 
 };
 

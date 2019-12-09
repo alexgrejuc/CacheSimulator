@@ -129,11 +129,7 @@ void CacheController::runTracefile() {
 	The read or write is indicated by isWrite.
 */
 void CacheController::cacheAccess(CacheResponse* response, bool isWrite, unsigned long long address) {
-	// your code needs to update the global counters that track the number of hits, misses, and evictions
 
-	auto v = caches.front();
-	v->say(); 
-	auto r = v->getLastResponse(); 
 	isWrite ? caches.front()->write(address) : caches.front()->read(address);
 
 	*response = caches.front()->getLastResponse(); 
