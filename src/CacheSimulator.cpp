@@ -19,8 +19,8 @@ using namespace std;
 	This function creates the cache and starts the simulator.
 	Accepts core ID number, configuration info, and the name of the trace file to read.
 */
-void initializeCache(list<CacheConfig> config, string traceFile) {
-	CacheController controller = CacheController(config, traceFile);
+void initializeCache(list<CacheConfig> config, unsigned int memoryAccessCycles, string traceFile) {
+	CacheController controller = CacheController(config, memoryAccessCycles, traceFile);
 	controller.runTracefile();
 }
 
@@ -45,7 +45,7 @@ int main(int argc, char* argv[]) {
 	cout << "System has " << numCacheLevels << " cache(s)." << endl;
 
 	configFile >> memoryAccessCycles;
-	cout << "System has " << memoryAccessCycles << " cycles per memory access"; 
+	cout << "System has " << memoryAccessCycles << " cycles per memory access" << endl; 
 
 	list<CacheConfig> cacheConfigs;
 
@@ -88,7 +88,7 @@ int main(int argc, char* argv[]) {
 	configFile.close();
 	
 	string tracefile(argv[2]);
-	initializeCache(cacheConfigs, tracefile);
+	initializeCache(cacheConfigs, memoryAccessCycles, tracefile);
 
 	return 0;
 }

@@ -1,6 +1,7 @@
 #include "CacheStuff.h"
 #include <vector>
 #include <unordered_map>
+#include <deque>
 #ifndef _MEMORY_UNIT_
 #define _MEMORY_UNIT_
 
@@ -12,21 +13,41 @@ protected:
 	CacheResponse lastResponse;
 	
 public:
-	void read(unsigned long long address); 
-	void write(unsigned long long address);
-	CacheResponse getLastResponse(); 
+	virtual void read(unsigned long long address); 
+	virtual void write(unsigned long long address);
+	CacheResponse getLastResponse();
+	MemoryUnit(unsigned int memoryAccessCycles); 
+	MemoryUnit();
+	virtual void say(); 
+};
+
+class CacheSet {
+public:
+	// a map from tags to indexes in the deque
+	// it is used to provide constant time lookup into a set 
+	std::unordered_map<unsigned long long, std::deque<Entry>::iterator> addressMap;
+	std::deque<Entry> data;
+
+
+	CacheSet();
+	/*
+	bool find(unsigned long long tag);
+	void writeAndUpdateUsage(unsigned long long);
+	void write();
+	void erase(iterator*/
 };
 
 class Cache : public MemoryUnit {
 	CacheConfig config;
-	MemoryUnit& lowerLevel; // ex: L2 if this is L1
-	std::vector<std::unordered_map<unsigned long long, Entry> > sets;
+	MemoryUnit* lowerLevel; // ex: L2 if this is L1
+	std::vector<CacheSet> sets; 
 	addressInfo splitAddress(unsigned long long address); 
 
 public:
-	Cache(CacheConfig config, MemoryUnit& lowerLevel); 
+	Cache(CacheConfig config, MemoryUnit* lowerLevel);
 	void read(unsigned long long address);
 	void write(unsigned long long address);
+	void say(); 
 };
 
 #endif

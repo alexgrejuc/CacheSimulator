@@ -9,19 +9,42 @@
 #include <fstream>
 #include <regex>
 #include <cmath>
+#include "MemoryUnit.h"
 
 using namespace std;
 
-CacheController::CacheController(list<CacheConfig> cacheConfigs, string traceFile) {
+CacheController::CacheController(list<CacheConfig> cacheConfigs, unsigned int memoryAccessCycles, string traceFile) {
 	// store the configuration info
 	inputFile = traceFile;
 	outputFile = inputFile + ".out";
 
+	caches = list<MemoryUnit*>();
+	MemoryUnit* previous = new MemoryUnit(memoryAccessCycles); 
+	caches.push_front(previous);
+	
+	for (auto config = cacheConfigs.rbegin(); config != cacheConfigs.rend(); ++config) {
+		Cache* c = new Cache(*config, previous);
+		caches.push_front(c); 
+		previous = c; 
+	}
+
+	for (auto cache : caches) {
+		cache->say(); 
+	}
+	
 	// initialize the counters
 	globalCycles = 0;
 	globalHits = 0;
 	globalMisses = 0;
-	globalEvictions = 0;	
+	globalEvictions = 0;
+	this->memoryAccessCycles = 0; 
+	
+}
+
+CacheController::~CacheController() {
+	for (MemoryUnit* cache : caches) {
+		delete cache; 
+	}
 }
 
 /*
@@ -108,6 +131,13 @@ void CacheController::runTracefile() {
 void CacheController::cacheAccess(CacheResponse* response, bool isWrite, unsigned long long address) {
 	// your code needs to update the global counters that track the number of hits, misses, and evictions
 
+	auto v = caches.front();
+	v->say(); 
+	auto r = v->getLastResponse(); 
+	isWrite ? caches.front()->write(address) : caches.front()->read(address);
+
+	*response = caches.front()->getLastResponse(); 
+	
 	if (response->hit)
 		cout << "Address " << std::hex << address << " was a hit." << endl;
 	else

@@ -49,16 +49,11 @@ class Entry
 {
 	public: 
 		Entry(); 
+		Entry(bool valid); 
 		bool valid;
 		bool dirty;
 		unsigned long long tag;
 };
-
-inline Entry::Entry()
-{
-	valid = dirty = false;
-	tag = 0; 
-}
 
 class TimedEntry : public Entry
 {

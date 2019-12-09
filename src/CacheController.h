@@ -10,6 +10,7 @@
 #include "CacheStuff.h"
 #include <string>
 #include <list>
+#include "MemoryUnit.h"
 
 class CacheController {
 	private:
@@ -17,8 +18,10 @@ class CacheController {
 		unsigned int globalHits;
 		unsigned int globalMisses;
 		unsigned int globalEvictions;
+		unsigned int memoryAccessCycles; 
 		std::string inputFile, outputFile;
 
+		std::list<MemoryUnit*> caches; 
 		// function to allow read or write access to the cache
 		void cacheAccess(CacheResponse*, bool, unsigned long long);
 
@@ -26,7 +29,8 @@ class CacheController {
 		void updateCycles(CacheResponse*, bool);
 
 	public:
-		CacheController(std::list<CacheConfig>, std::string);
+		CacheController(std::list<CacheConfig>, unsigned int memoryAccessCycles, std::string);
+		~CacheController(); 
 		void runTracefile();
 };
 
