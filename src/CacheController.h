@@ -14,6 +14,9 @@
 
 class CacheController {
 	private:
+		CacheController & operator=(const CacheController&) = delete;
+		CacheController(const CacheController&) = delete;
+		CacheController() = default;
 		unsigned int globalCycles;
 		unsigned int globalHits;
 		unsigned int globalMisses;

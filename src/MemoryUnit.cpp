@@ -31,6 +31,10 @@ void MemoryUnit::say() {
 	cout << "RAM" << endl; 
 }
 
+/*string MemoryUnit::display(){
+	return string(""); 
+}*/
+
 MemoryUnit::MemoryUnit() {
 }
 
@@ -41,17 +45,28 @@ MemoryUnit::MemoryUnit(unsigned int memoryAccessCycles) {
 MemoryUnit::~MemoryUnit() {}
 
 Cache::Cache(CacheConfig config, MemoryUnit* lowerLevel) {
+	hits = misses = evictions = cycles = 0; 
 	this->config = config;
 	this->lowerLevel = lowerLevel; 
 
-	for(unsigned int i = 0; i < config.numberSets; ++i){
-		sets.emplace_back();
+	sets = vector<CacheSet>();
+	
+	for(unsigned int i = 0; i < config.numberSets; ++i) {
+		sets.emplace_back(); // crash here? todo: uncomment the other stuff, add the display code and figure out what is wrong with this  
 	}
 }
 
 void Cache::say() {
 	cout << "Cache" << endl; 
 }
+
+/*string Cache::display() {
+	string s(std::to_string(lastResponse.cycles) + " L " + to_string(config.level));
+	lastResponse.hit ? s += " hit" : s += " miss"; 
+	if (lastResponse.eviction) s += " eviction";
+
+	return s; 
+}*/
 
 /* splits an address into its index and tag */
 addressInfo Cache::splitAddress(unsigned long long address) {
@@ -90,6 +105,7 @@ void Cache::read(unsigned long long address) {
 
 void Cache::write(unsigned long long address) {
 	lastResponse.cycles = config.cacheAccessCycles;
+	lastResponse.dirtyEviction = lastResponse.eviction = false; 
 	addressInfo info = splitAddress(address);
 
 	ostringstream displayInfo;
@@ -108,7 +124,6 @@ void Cache::write(unsigned long long address) {
 		}
 
 		// todo: implement write through and write back
-		lastResponse.eviction = lastResponse.dirtyEviction = false; 
 	}
 	else {
 		cout << "Missed " << displayInfo.str();

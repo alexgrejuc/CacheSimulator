@@ -20,7 +20,8 @@ using namespace std;
 	Accepts core ID number, configuration info, and the name of the trace file to read.
 */
 void initializeCache(list<CacheConfig> config, unsigned int memoryAccessCycles, string traceFile) {
-	CacheController controller = CacheController(config, memoryAccessCycles, traceFile);
+	//CacheController controller = CacheController(config, memoryAccessCycles, traceFile);
+	CacheController controller(config, memoryAccessCycles, traceFile);
 	controller.runTracefile();
 }
 

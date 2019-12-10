@@ -18,7 +18,8 @@ public:
 	CacheResponse getLastResponse();
 	MemoryUnit(unsigned int memoryAccessCycles); 
 	MemoryUnit();
-	virtual ~MemoryUnit(); 
+	virtual ~MemoryUnit();
+	//virtual std::string display(); 
 	virtual void say(); 
 };
 
@@ -39,6 +40,7 @@ public:
 };
 
 class Cache : public MemoryUnit {
+	unsigned int hits, misses, evictions, cycles; 
 	CacheConfig config;
 	MemoryUnit* lowerLevel; // ex: L2 if this is L1
 	std::vector<CacheSet> sets; 
@@ -49,6 +51,7 @@ public:
 	void read(unsigned long long address);
 	void write(unsigned long long address);
 	void say(); 
+	//std::string display();							// ex: "L1 miss eviction" 
 };
 
 #endif
