@@ -47,6 +47,15 @@ CacheController::~CacheController() {
 	}
 }
 
+string CacheController::displayOperationResults() {
+	string s("");
+
+	for (auto cache : caches) {
+		s += cache->display(); 
+	}
+
+	return s; 
+}
 /*
 	Starts reading the tracefile and processing memory operations.
 */
@@ -86,14 +95,16 @@ void CacheController::runTracefile() {
 			hexStream >> std::hex >> address;
 			outfile << match.str(1) << match.str(2) << match.str(3);
 			cacheAccess(&response, false, address);
-			outfile << " " << response.cycles << (response.hit ? " hit" : " miss") << (response.eviction ? " eviction" : "");
+			outfile << " " << displayOperationResults() << endl; 
+			//outfile << " " << response.cycles << (response.hit ? " hit" : " miss") << (response.eviction ? " eviction" : "");
 		} else if (std::regex_match(line, match, storePattern)) {
 			cout << "Found a store op!" << endl;
 			istringstream hexStream(match.str(2));
 			hexStream >> std::hex >> address;
 			outfile << match.str(1) << match.str(2) << match.str(3);
 			cacheAccess(&response, true, address);
-			outfile << " " << response.cycles << (response.hit ? " hit" : " miss") << (response.eviction ? " eviction" : "");
+			outfile << " " << displayOperationResults() << endl; 
+			//outfile << " " << response.cycles << (response.hit ? " hit" : " miss") << (response.eviction ? " eviction" : "");
 		} else if (std::regex_match(line, match, modifyPattern)) {
 			cout << "Found a modify op!" << endl;
 			istringstream hexStream(match.str(2));
@@ -101,16 +112,19 @@ void CacheController::runTracefile() {
 			outfile << match.str(1) << match.str(2) << match.str(3);
 			// first process the read operation
 			cacheAccess(&response, false, address);
-			string tmpString; // will be used during the file output
-			tmpString.append(response.hit ? " hit" : " miss");
-			tmpString.append(response.eviction ? " eviction" : "");
-			unsigned long long totalCycles = response.cycles; // track the number of cycles used for both stages of the modify operation
+			outfile << " " << displayOperationResults() << endl; 
+			//string tmpString; // will be used during the file output
+			//tmpString.append(response.hit ? " hit" : " miss");
+			//tmpString.append(response.eviction ? " eviction" : "");
+			//unsigned long long totalCycles = response.cycles; // track the number of cycles used for both stages of the modify operation
 			// now process the write operation
 			cacheAccess(&response, true, address);
-			tmpString.append(response.hit ? " hit" : " miss");
-			tmpString.append(response.eviction ? " eviction" : "");
-			totalCycles += response.cycles;
-			outfile << " " << totalCycles << tmpString;
+			outfile << match.str(1) << match.str(2) << match.str(3);
+			outfile << " " << displayOperationResults() << endl; 
+			//tmpString.append(response.hit ? " hit" : " miss");
+			//tmpString.append(response.eviction ? " eviction" : "");
+			//totalCycles += response.cycles;
+			//outfile << " " << totalCycles << tmpString;
 		} else {
 			throw runtime_error("Encountered unknown line format in trace file.");
 		}

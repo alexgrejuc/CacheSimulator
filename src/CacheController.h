@@ -21,7 +21,8 @@ class CacheController {
 		unsigned int globalHits;
 		unsigned int globalMisses;
 		unsigned int globalEvictions;
-		unsigned int memoryAccessCycles; 
+		unsigned int memoryAccessCycles;
+		unsigned int reads, writes; 
 		std::string inputFile, outputFile;
 
 		std::list<MemoryUnit*> caches; 
@@ -30,6 +31,7 @@ class CacheController {
 
 		// compute the number of clock cycles used to complete a memory access
 		void updateCycles(CacheResponse*, bool);
+		std::string displayOperationResults(); 
 
 	public:
 		CacheController(std::list<CacheConfig>, unsigned int memoryAccessCycles, std::string);

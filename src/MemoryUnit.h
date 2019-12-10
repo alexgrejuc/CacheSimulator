@@ -19,7 +19,7 @@ public:
 	MemoryUnit(unsigned int memoryAccessCycles); 
 	MemoryUnit();
 	virtual ~MemoryUnit();
-	//virtual std::string display(); 
+	virtual std::string display(); 
 	virtual void say(); 
 };
 
@@ -51,7 +51,7 @@ public:
 	void read(unsigned long long address);
 	void write(unsigned long long address);
 	void say(); 
-	//std::string display();							// ex: "L1 miss eviction" 
+	std::string display();							// ex: "L1 miss eviction" 
 };
 
 #endif

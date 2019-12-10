@@ -31,9 +31,9 @@ void MemoryUnit::say() {
 	cout << "RAM" << endl; 
 }
 
-/*string MemoryUnit::display(){
+string MemoryUnit::display(){
 	return string(""); 
-}*/
+}
 
 MemoryUnit::MemoryUnit() {
 }
@@ -60,13 +60,13 @@ void Cache::say() {
 	cout << "Cache" << endl; 
 }
 
-/*string Cache::display() {
+string Cache::display() {
 	string s(std::to_string(lastResponse.cycles) + " L " + to_string(config.level));
 	lastResponse.hit ? s += " hit" : s += " miss"; 
 	if (lastResponse.eviction) s += " eviction";
 
 	return s; 
-}*/
+}
 
 /* splits an address into its index and tag */
 addressInfo Cache::splitAddress(unsigned long long address) {
