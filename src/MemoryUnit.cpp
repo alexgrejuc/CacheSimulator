@@ -15,11 +15,20 @@ CacheResponse MemoryUnit::getLastResponse() {
 	return lastResponse; 
 }
 
+void MemoryUnit::updateGlobalCycles() {
+	globalCycles += lastResponse.cycles;
+	/*lastResponse.hit ? globalHits++ : globalMisses++;
+	if (lastResponse.eviction) globalEvictions++;*/
+	//todo: update global dirty Eviction if needed 
+}
+
+
 // a RAM read so it must be a hit 
 void MemoryUnit::read(unsigned long long address) {
 	lastResponse.cycles = memoryAccessCycles;
 	lastResponse.dirtyEviction = lastResponse.eviction = false;
 	lastResponse.hit = true;
+	updateGlobalCycles(); 
 }
 
 // a RAM write; has the same lastResponse as a read 
@@ -31,7 +40,11 @@ void MemoryUnit::say() {
 	cout << "RAM" << endl; 
 }
 
-string MemoryUnit::display(){
+string MemoryUnit::displayOperationResult(){
+	return string(""); 
+}
+
+string MemoryUnit::displayLocalCounts() {
 	return string(""); 
 }
 
@@ -44,8 +57,18 @@ MemoryUnit::MemoryUnit(unsigned int memoryAccessCycles) {
 
 MemoryUnit::~MemoryUnit() {}
 
+void Cache::updateLocalCounts() {
+	lastResponse.hit ? hits++ : misses++;
+	if (lastResponse.eviction) evictions++;
+}
+
+void Cache::updateCounts() {
+	updateGlobalCycles();
+	updateLocalCounts(); 
+}
+
 Cache::Cache(CacheConfig config, MemoryUnit* lowerLevel) {
-	hits = misses = evictions = cycles = 0; 
+	hits = misses = evictions = 0; 
 	this->config = config;
 	this->lowerLevel = lowerLevel; 
 
@@ -60,12 +83,18 @@ void Cache::say() {
 	cout << "Cache" << endl; 
 }
 
-string Cache::display() {
-	string s(std::to_string(lastResponse.cycles) + " L " + to_string(config.level));
+string Cache::displayOperationResult() {
+	string s(std::to_string(lastResponse.cycles) + " L" + to_string(config.level));
 	lastResponse.hit ? s += " hit" : s += " miss"; 
 	if (lastResponse.eviction) s += " eviction";
 
 	return s; 
+}
+
+std::string Cache::displayLocalCounts() {
+	stringstream ss;
+	ss << "L" << config.level << " Cache: Hits: " << hits << " Misses: " << misses << " Evictions: " << evictions; 
+	return ss.str(); 
 }
 
 /* splits an address into its index and tag */
@@ -100,7 +129,8 @@ void Cache::read(unsigned long long address) {
 		lastResponse.hit = false; 
 	}
 
-	lastResponse.dirtyEviction = lastResponse.eviction = false; 
+	lastResponse.dirtyEviction = lastResponse.eviction = false;
+	updateCounts(); 
 }
 
 void Cache::write(unsigned long long address) {
@@ -154,7 +184,8 @@ void Cache::write(unsigned long long address) {
 		sets[info.setIndex].data.emplace_back(true); // insert a valid block at the end 
 		sets[info.setIndex].addressMap[info.tag] = --sets[info.setIndex].data.end();
 	}
-	
+
+	updateCounts(); 
 }
 
 

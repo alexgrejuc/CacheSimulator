@@ -13,6 +13,12 @@
 
 using namespace std;
 
+
+unsigned int MemoryUnit::globalCycles;
+//unsigned int MemoryUnit::globalHits;
+//unsigned int MemoryUnit::globalMisses;
+//unsigned int MemoryUnit::globalEvictions;
+
 CacheController::CacheController(list<CacheConfig> cacheConfigs, unsigned int memoryAccessCycles, string traceFile) {
 	// store the configuration info
 	inputFile = traceFile;
@@ -21,6 +27,8 @@ CacheController::CacheController(list<CacheConfig> cacheConfigs, unsigned int me
 	caches = list<MemoryUnit*>();
 	MemoryUnit* previous = new MemoryUnit(memoryAccessCycles); 
 	caches.push_front(previous);
+
+	MemoryUnit::globalCycles = /*MemoryUnit::globalEvictions = MemoryUnit::globalHits = MemoryUnit::globalMisses =*/ 0; 
 	
 	for (auto config = cacheConfigs.rbegin(); config != cacheConfigs.rend(); ++config) {
 		Cache* c = new Cache(*config, previous);
@@ -38,7 +46,8 @@ CacheController::CacheController(list<CacheConfig> cacheConfigs, unsigned int me
 	globalMisses = 0;
 	globalEvictions = 0;
 	this->memoryAccessCycles = 0; 
-	
+
+	reads = writes = 0; 
 }
 
 CacheController::~CacheController() {
@@ -51,7 +60,7 @@ string CacheController::displayOperationResults() {
 	string s("");
 
 	for (auto cache : caches) {
-		s += cache->display(); 
+		s += cache->displayOperationResult(); 
 	}
 
 	return s; 
@@ -95,16 +104,18 @@ void CacheController::runTracefile() {
 			hexStream >> std::hex >> address;
 			outfile << match.str(1) << match.str(2) << match.str(3);
 			cacheAccess(&response, false, address);
-			outfile << " " << displayOperationResults() << endl; 
+			outfile << " " << displayOperationResults();
 			//outfile << " " << response.cycles << (response.hit ? " hit" : " miss") << (response.eviction ? " eviction" : "");
+			reads++; 
 		} else if (std::regex_match(line, match, storePattern)) {
 			cout << "Found a store op!" << endl;
 			istringstream hexStream(match.str(2));
 			hexStream >> std::hex >> address;
 			outfile << match.str(1) << match.str(2) << match.str(3);
 			cacheAccess(&response, true, address);
-			outfile << " " << displayOperationResults() << endl; 
+			outfile << " " << displayOperationResults();
 			//outfile << " " << response.cycles << (response.hit ? " hit" : " miss") << (response.eviction ? " eviction" : "");
+			writes++; 
 		} else if (std::regex_match(line, match, modifyPattern)) {
 			cout << "Found a modify op!" << endl;
 			istringstream hexStream(match.str(2));
@@ -112,7 +123,7 @@ void CacheController::runTracefile() {
 			outfile << match.str(1) << match.str(2) << match.str(3);
 			// first process the read operation
 			cacheAccess(&response, false, address);
-			outfile << " " << displayOperationResults() << endl; 
+			outfile << " " << displayOperationResults() << endl;
 			//string tmpString; // will be used during the file output
 			//tmpString.append(response.hit ? " hit" : " miss");
 			//tmpString.append(response.eviction ? " eviction" : "");
@@ -120,20 +131,28 @@ void CacheController::runTracefile() {
 			// now process the write operation
 			cacheAccess(&response, true, address);
 			outfile << match.str(1) << match.str(2) << match.str(3);
-			outfile << " " << displayOperationResults() << endl; 
+			outfile << " " << displayOperationResults();
 			//tmpString.append(response.hit ? " hit" : " miss");
 			//tmpString.append(response.eviction ? " eviction" : "");
 			//totalCycles += response.cycles;
 			//outfile << " " << totalCycles << tmpString;
+			reads++;
+			writes++; 
 		} else {
 			throw runtime_error("Encountered unknown line format in trace file.");
 		}
 		outfile << endl;
 	}
-	// add the final cache statistics
-	outfile << "Hits: " << globalHits << " Misses: " << globalMisses << " Evictions: " << globalEvictions << endl;
-	outfile << "Cycles: " << globalCycles << endl;
 
+	// display all MemoryUnits except the RAM
+	for(auto cache = caches.begin(); cache != --caches.end(); ++cache) {
+		outfile << (*cache)->displayLocalCounts() << endl; 
+	}
+
+	// add the final cache statistics
+	//outfile << "Hits: " << MemoryUnit::globalHits << " Misses: " << MemoryUnit::globalMisses << " Evictions: " << MemoryUnit::globalEvictions << endl;
+	outfile << "Cycles: " << MemoryUnit::globalCycles << " Reads: " << reads << " Writes: " << writes << endl;
+	
 	infile.close();
 	outfile.close();
 }

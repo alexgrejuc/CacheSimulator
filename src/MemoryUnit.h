@@ -7,19 +7,22 @@
 
 
 class MemoryUnit {
-	unsigned int memoryAccessCycles; 
-
+	unsigned int memoryAccessCycles;
 protected:
 	CacheResponse lastResponse;
+	void updateGlobalCycles(); 
 	
 public:
+	static unsigned int globalCycles;
+
 	virtual void read(unsigned long long address); 
 	virtual void write(unsigned long long address);
 	CacheResponse getLastResponse();
 	MemoryUnit(unsigned int memoryAccessCycles); 
 	MemoryUnit();
 	virtual ~MemoryUnit();
-	virtual std::string display(); 
+	virtual std::string displayOperationResult(); 
+	virtual std::string displayLocalCounts(); 
 	virtual void say(); 
 };
 
@@ -40,18 +43,20 @@ public:
 };
 
 class Cache : public MemoryUnit {
-	unsigned int hits, misses, evictions, cycles; 
+	unsigned int hits, misses, evictions;
 	CacheConfig config;
 	MemoryUnit* lowerLevel; // ex: L2 if this is L1
 	std::vector<CacheSet> sets; 
 	addressInfo splitAddress(unsigned long long address); 
-
+	void updateLocalCounts();
+	void updateCounts(); 
 public:
 	Cache(CacheConfig config, MemoryUnit* lowerLevel);
 	void read(unsigned long long address);
 	void write(unsigned long long address);
 	void say(); 
-	std::string display();							// ex: "L1 miss eviction" 
+	std::string displayOperationResult();							// ex: "L1 miss eviction" 
+	virtual std::string displayLocalCounts();						// ex: "L1 Cache Hits: 10 Misses: 10..."  
 };
 
 #endif
