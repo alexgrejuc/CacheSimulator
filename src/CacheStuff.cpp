@@ -1,17 +1,18 @@
 #include "CacheStuff.h"
 
-Entry::Entry(uint64_t tag, bool dirty) {
+Entry::Entry(uint64_t tag, bool dirty, bool valid) {
 	this->tag = tag;
-	this->dirty = dirty; 
+	this->dirty = dirty;
+	this->valid = valid; 
 }
 
-/*Entry::Entry()
+Entry::Entry()
 {
 	valid = dirty = false;
 	tag = 0; 
 }
 
-Entry::Entry(bool valid)
+/*Entry::Entry(bool valid)
 {
 	dirty = false;
 	this->valid = valid; 

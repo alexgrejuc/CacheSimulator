@@ -6,9 +6,26 @@
 
 using namespace std; 
 
-CacheSet::CacheSet() {
-	addressMap = unordered_map<uint64_t, deque<Entry>::iterator>();
-	data = deque<Entry>(); 
+DirectMappedSet::DirectMappedSet() {
+	entry = Entry(); 
+}
+
+bool DirectMappedSet::contains(uint64_t tag) {
+	return entry.tag == tag && entry.valid; 
+}
+
+void DirectMappedSet::update(Entry e) {
+	entry = e; 
+}
+
+Entry DirectMappedSet::pop() {
+	Entry temp = entry;
+	entry.valid = 0;
+	return temp; 
+}
+
+bool DirectMappedSet::isFull() {
+	return entry.valid; 
 }
 
 CacheResponse MemoryUnit::getLastResponse() {
@@ -81,10 +98,16 @@ Cache::Cache(CacheConfig config, MemoryUnit* lowerLevel) {
 	this->config = config;
 	this->lowerLevel = lowerLevel; 
 
-	sets = vector<CacheSet>();
+	if (config.associativity == 1) {
+		sets = vector<Set*>(); 
+	}
+	else {
+		//todo 
+		sets = vector<Set*>(); 
+	}
 	
 	for(unsigned int i = 0; i < config.numberSets; ++i) {
-		sets.emplace_back();  
+		sets.push_back(new DirectMappedSet()); 
 	}
 }
 
@@ -117,99 +140,6 @@ addressInfo Cache::splitAddress(uint64_t address) {
 	return  a; 
 }
 
-/* checks for a matching tag in this cache, looks down a level if not found
- * sets cache access cycles to the respective amount 
- */
-void Cache::read(uint64_t address) {
-	lastResponse.cycles = config.cacheAccessCycles;
-	
-	addressInfo info = splitAddress(address);
-
-	ostringstream displayInfo;
-	displayInfo << "read " << address << " in L" << config.level << endl; 
-
-	if(sets[info.setIndex].addressMap.find(info.tag) != sets[info.setIndex].addressMap.end()) {
-		cout << "Found " << displayInfo.str(); 
-		lastResponse.hit = true; 
-	}
-	else {
-		cout << "Missed " << displayInfo.str(); 
-		lowerLevel->read(address);
-		lastResponse.hit = false; 
-	}
-
-	lastResponse.dirtyEviction = lastResponse.eviction = false;
-	updateCounts(); 
-}
-
-void Cache::write(uint64_t address) {
-	lastResponse.cycles = config.cacheAccessCycles;
-	lastResponse.dirtyEviction = lastResponse.eviction = false; 
-
-	addressInfo info = splitAddress(address);
-
-	ostringstream displayInfo;
-	displayInfo << "write " << address << " in L" << config.level << endl; 
-
-	// look for tag in set
-	if(sets[info.setIndex].addressMap.find(info.tag) != sets[info.setIndex].addressMap.end()) {
-		lastResponse.hit = true;
-		cout << "Found " << displayInfo.str(); 
-
-		// if it is LRU then we need to move the element to the back of the deque to maintain usage order 
-		if(config.rp == ReplacementPolicy::LRU) {
-			Entry temp = *sets[info.setIndex].addressMap[info.tag];							// get  a copy of the entry 
-			sets[info.setIndex].data.erase(sets[info.setIndex].addressMap[info.tag]);		// erase the entry
-			sets[info.setIndex].data.push_back(temp);										// put the entry at the back to give it MRU status
-			sets[info.setIndex].addressMap[info.tag] = --sets[info.setIndex].data.end();	// map value points to the updated position of the block 
-		}
-
-		// todo: implement write through and write back
-
-		if(config.wp == WritePolicy::WriteBack) {
-			sets[info.setIndex].addressMap[info.tag]->dirty = true;
-		}
-		else if(config.wp == WritePolicy::WriteThrough) {
-			lowerLevel->write(address); 
-		}
-	}
-	else {
-		lastResponse.hit = false; 
-		cout << "Missed " << displayInfo.str();
-
-		lowerLevel->read(address);
-
-		// is the set full? 
-		if (sets[info.setIndex].data.size() == config.associativity) {
-			lastResponse.eviction = true;
-			
-			deque<Entry>::iterator blockToErase;
-
-			if (config.rp == ReplacementPolicy::LRU) {
-				blockToErase = sets[info.setIndex].data.begin(); // since the deque keeps usage order, LRU is at the beginning 
-			}
-			else {
-				//blockToErase = sets[info.setIndex].data.begin(); // todo: pick a random block
-				//uint64_t randomSetIndex = rand() % config.associativity; 
-			}
-
-			if(blockToErase->dirty) {
-				lastResponse.dirtyEviction = true;
-				// todo 
-			}
-
-			// todo evict and dirty and all that
-			sets[info.setIndex].data.erase(blockToErase);
-		}
-
-		sets[info.setIndex].data.emplace_back(true); // insert a valid block at the end 
-		sets[info.setIndex].addressMap[info.tag] = --sets[info.setIndex].data.end();
-	}
-
-	updateCounts(); 
-}
-
-
 void Cache::access(uint64_t address, bool isWrite) {
 	lastResponse.cycles = config.cacheAccessCycles;
 	lastResponse.dirtyEviction = lastResponse.eviction = false; 
@@ -226,28 +156,20 @@ void Cache::access(uint64_t address, bool isWrite) {
 	
 	displayInfo << " " << address << " in L" << config.level << endl;
 
-	//todo: remove! 
-	if(sets[info.setIndex].addressMap.size() > config.associativity || sets[info.setIndex].data.size() > config.associativity) {
-		runtime_error("Improper cache management ya dumb fuck"); 
-	}
-
 	// look for tag in set
-	if(sets[info.setIndex].addressMap.find(info.tag) != sets[info.setIndex].addressMap.end()) {
+	if(sets[info.setIndex]->contains(info.tag)) {
 		lastResponse.hit = true;
 		cout << "Found " << displayInfo.str(); 
 
 		// if it is LRU then we need to move the element to the back of the deque to maintain usage order 
 		if(config.rp == ReplacementPolicy::LRU) {
-			Entry temp = *sets[info.setIndex].addressMap[info.tag];							// get  a copy of the entry 
-			sets[info.setIndex].data.erase(sets[info.setIndex].addressMap[info.tag]);		// erase the entry
-			sets[info.setIndex].data.push_back(temp);										// put the entry at the back to give it MRU status
-			sets[info.setIndex].addressMap[info.tag] = --sets[info.setIndex].data.end();	// map value points to the updated position of the block 
+			// do!
 		}
 
 		// todo: implement write through and write back
 		if (isWrite) {
 			if (config.wp == WritePolicy::WriteBack) {
-				sets[info.setIndex].addressMap[info.tag]->dirty = true;
+				sets[info.setIndex]->update(Entry(info.tag, true)); 
 			}
 			else if (config.wp == WritePolicy::WriteThrough) {
 				lowerLevel->write(address);
@@ -261,33 +183,21 @@ void Cache::access(uint64_t address, bool isWrite) {
 		lowerLevel->read(address);
 
 		// is the set full? 
-		if (sets[info.setIndex].data.size() == config.associativity) {
+		if (sets[info.setIndex]->isFull()) {
 			lastResponse.eviction = true;
 			
-			deque<Entry>::iterator blockToErase;
+			Entry erased = sets[info.setIndex]->pop(); 
 
-			if (config.rp == ReplacementPolicy::LRU) {
-				blockToErase = sets[info.setIndex].data.begin(); // since the deque keeps usage order, LRU is at the beginning 
-			}
-			else {
-				blockToErase = sets[info.setIndex].data.begin(); // todo: pick a random block
-				//uint64_t randomSetIndex = rand() % config.associativity; 
-			}
-
-			if(blockToErase->dirty) {
+			if(erased.dirty) {
 				lastResponse.dirtyEviction = true;
 				// todo 
 			}
-
-			sets[info.setIndex].addressMap.erase(blockToErase->tag); 
-			// todo evict and dirty and all that
-			sets[info.setIndex].data.erase(blockToErase);
 		}
 
 		Entry e(info.tag);
 		if (isWrite) e.dirty = true;
-		sets[info.setIndex].data.push_back(e);							// insert a valid block at the end 
-		sets[info.setIndex].addressMap[info.tag] = --sets[info.setIndex].data.end();	
+		
+		sets[info.setIndex]->update(e); 
 	}
 
 	updateCounts(); 

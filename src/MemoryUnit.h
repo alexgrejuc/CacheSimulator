@@ -2,6 +2,7 @@
 #include <vector>
 #include <unordered_map>
 #include <deque>
+#include <memory>
 #ifndef _MEMORY_UNIT_
 #define _MEMORY_UNIT_
 
@@ -28,69 +29,34 @@ public:
 	virtual void say(); 
 };
 
-class CacheSetNode {
-	CacheSetNode* prev, *next;
-	Entry entry;
-
-public:
-	CacheSetNode(CacheSetNode* prev, Entry e, CacheSetNode* next); 
-};
-
-class CacheSet2 {
-	CacheSetNode* last;
-	std::unordered_map<uint64_t, CacheSetNode*> map;
-
-	public:
-	void pushBack(uint64_t, Entry);
-	void erase(CacheSetNode* node); 
-};
-
-class CacheSet {
-public:
-	// a map from tags to indexes in the deque
-	// it is used to provide constant time lookup into a set 
-	std::unordered_map<uint64_t, std::deque<Entry>::iterator> addressMap;
-	std::deque<Entry> data;
-
-
-	CacheSet();
-	/*
-	bool find(uint64_t tag);
-	void writeAndUpdateUsage(uint64_t);
-	void write();
-	void erase(iterator*/
-
-	//CacheSet* next;
-	//CacheSet* prev; 
-};
-
 class Set {
 public:
-	virtual bool contains(uint64_t tag) = 0;
-	virtual void update(uint64_t tag, Entry) = 0;
-	virtual void erase(uint64_t tag) = 0; 
+	virtual bool contains(uint64_t tag) =0;
+	virtual void update(Entry) =0;
+	virtual Entry pop() =0; 
+	virtual bool isFull() =0;
 };
 
-class directMappedSet : public Set {
+class DirectMappedSet : public Set {
 	Entry entry; 
 public:
 	bool contains(uint64_t tag);
-	void update(uint64_t tag, Entry);
-	void erase(uint64_t tag); 
+	void update(Entry);
+	Entry pop(); 
+	bool isFull();
+	DirectMappedSet(); 
 };
 
 class Cache : public MemoryUnit {
 	unsigned int hits, misses, evictions;
 	CacheConfig config;
 	MemoryUnit* lowerLevel; // ex: L2 if this is L1
-	std::vector<CacheSet> sets; 
+	std::vector<Set*> sets; 
 	addressInfo splitAddress(uint64_t address); 
 	void updateLocalCounts();
 	void updateCounts(); 
 public:
 	Cache(CacheConfig config, MemoryUnit* lowerLevel);
-	void read(uint64_t address);
-	void write(uint64_t address);
 	void access(uint64_t address, bool isWrite);
 	void say(); 
 	std::string displayOperationResult();							// ex: "L1 miss eviction" 

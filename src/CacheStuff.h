@@ -49,9 +49,9 @@ struct CacheResponse {
 class Entry
 {
 	public: 
-		//Entry(); 
+		Entry(); 
 		//Entry(bool valid); 
-		Entry(uint64_t tag, bool dirty = false); 
+		Entry(uint64_t tag, bool dirty = false, bool valid = true); 
 		bool valid;
 		bool dirty;
 		uint64_t tag;
