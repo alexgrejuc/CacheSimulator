@@ -27,11 +27,11 @@ class CacheController {
 
 		std::list<MemoryUnit*> caches; 
 		// function to allow read or write access to the cache
-		void cacheAccess(CacheResponse*, bool, unsigned long long);
+		void cacheAccess(CacheResponse*, bool, uint64_t);
 
 		// compute the number of clock cycles used to complete a memory access
 		void updateCycles(CacheResponse*, bool);
-		std::string displayOperationResults(); 
+		void displayOperationResults(std::ofstream&); 
 
 	public:
 		CacheController(std::list<CacheConfig>, unsigned int memoryAccessCycles, std::string);

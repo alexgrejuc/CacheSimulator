@@ -13,10 +13,12 @@ protected:
 	void updateGlobalCycles(); 
 	
 public:
-	static unsigned int globalCycles;
+	static unsigned int totalGlobalCycles;
+	static unsigned int operationGlobalCycles;
 
-	virtual void read(unsigned long long address); 
-	virtual void write(unsigned long long address);
+	virtual void read(uint64_t address); 
+	virtual void write(uint64_t address);
+	virtual void access(uint64_t address, bool isWrite);
 	CacheResponse getLastResponse();
 	MemoryUnit(unsigned int memoryAccessCycles); 
 	MemoryUnit();
@@ -30,14 +32,14 @@ class CacheSet {
 public:
 	// a map from tags to indexes in the deque
 	// it is used to provide constant time lookup into a set 
-	std::unordered_map<unsigned long long, std::deque<Entry>::iterator> addressMap;
+	std::unordered_map<uint64_t, std::deque<Entry>::iterator> addressMap;
 	std::deque<Entry> data;
 
 
 	CacheSet();
 	/*
-	bool find(unsigned long long tag);
-	void writeAndUpdateUsage(unsigned long long);
+	bool find(uint64_t tag);
+	void writeAndUpdateUsage(uint64_t);
 	void write();
 	void erase(iterator*/
 };
@@ -47,16 +49,17 @@ class Cache : public MemoryUnit {
 	CacheConfig config;
 	MemoryUnit* lowerLevel; // ex: L2 if this is L1
 	std::vector<CacheSet> sets; 
-	addressInfo splitAddress(unsigned long long address); 
+	addressInfo splitAddress(uint64_t address); 
 	void updateLocalCounts();
 	void updateCounts(); 
 public:
 	Cache(CacheConfig config, MemoryUnit* lowerLevel);
-	void read(unsigned long long address);
-	void write(unsigned long long address);
+	void read(uint64_t address);
+	void write(uint64_t address);
+	void access(uint64_t address, bool isWrite);
 	void say(); 
 	std::string displayOperationResult();							// ex: "L1 miss eviction" 
-	virtual std::string displayLocalCounts();						// ex: "L1 Cache Hits: 10 Misses: 10..."  
+	std::string displayLocalCounts();						// ex: "L1 Cache Hits: 10 Misses: 10..."  
 };
 
 #endif

@@ -14,7 +14,8 @@
 using namespace std;
 
 
-unsigned int MemoryUnit::globalCycles;
+unsigned int MemoryUnit::totalGlobalCycles;
+unsigned int MemoryUnit::operationGlobalCycles;
 //unsigned int MemoryUnit::globalHits;
 //unsigned int MemoryUnit::globalMisses;
 //unsigned int MemoryUnit::globalEvictions;
@@ -28,7 +29,7 @@ CacheController::CacheController(list<CacheConfig> cacheConfigs, unsigned int me
 	MemoryUnit* previous = new MemoryUnit(memoryAccessCycles); 
 	caches.push_front(previous);
 
-	MemoryUnit::globalCycles = /*MemoryUnit::globalEvictions = MemoryUnit::globalHits = MemoryUnit::globalMisses =*/ 0; 
+	MemoryUnit::totalGlobalCycles = MemoryUnit::operationGlobalCycles = /*MemoryUnit::globalEvictions = MemoryUnit::globalHits = MemoryUnit::globalMisses =*/ 0; 
 	
 	for (auto config = cacheConfigs.rbegin(); config != cacheConfigs.rend(); ++config) {
 		Cache* c = new Cache(*config, previous);
@@ -56,14 +57,18 @@ CacheController::~CacheController() {
 	}
 }
 
-string CacheController::displayOperationResults() {
+void CacheController::displayOperationResults(ofstream& outfile) {
 	string s("");
 
-	for (auto cache : caches) {
-		s += cache->displayOperationResult(); 
+	// display all MemoryUnits except the RAM
+	for(auto cache = caches.begin(); cache != --caches.end(); ++cache) {
+		s += " ";
+		s += (*cache)->displayOperationResult();
+
+		if ((*cache)->getLastResponse().hit) break; // the lower levels were not accessed so do not display them  
 	}
 
-	return s; 
+	outfile << " " << MemoryUnit::operationGlobalCycles << s;
 }
 /*
 	Starts reading the tracefile and processing memory operations.
@@ -90,9 +95,10 @@ void CacheController::runTracefile() {
 		// these strings will be used in the file output
 		string opString, activityString;
 		smatch match; // will eventually hold the hexadecimal address string
-		unsigned long long address;
+		uint64_t address;
 		// create a struct to track cache responses
 		CacheResponse response;
+		MemoryUnit::operationGlobalCycles = 0; 
 
 		// ignore comments
 		if (std::regex_match(line, commentPattern) || std::regex_match(line, instructionPattern)) {
@@ -104,7 +110,7 @@ void CacheController::runTracefile() {
 			hexStream >> std::hex >> address;
 			outfile << match.str(1) << match.str(2) << match.str(3);
 			cacheAccess(&response, false, address);
-			outfile << " " << displayOperationResults();
+			displayOperationResults(outfile);
 			//outfile << " " << response.cycles << (response.hit ? " hit" : " miss") << (response.eviction ? " eviction" : "");
 			reads++; 
 		} else if (std::regex_match(line, match, storePattern)) {
@@ -113,7 +119,7 @@ void CacheController::runTracefile() {
 			hexStream >> std::hex >> address;
 			outfile << match.str(1) << match.str(2) << match.str(3);
 			cacheAccess(&response, true, address);
-			outfile << " " << displayOperationResults();
+			displayOperationResults(outfile);
 			//outfile << " " << response.cycles << (response.hit ? " hit" : " miss") << (response.eviction ? " eviction" : "");
 			writes++; 
 		} else if (std::regex_match(line, match, modifyPattern)) {
@@ -123,15 +129,17 @@ void CacheController::runTracefile() {
 			outfile << match.str(1) << match.str(2) << match.str(3);
 			// first process the read operation
 			cacheAccess(&response, false, address);
-			outfile << " " << displayOperationResults() << endl;
+			displayOperationResults(outfile);
+			outfile << endl;
+			MemoryUnit::operationGlobalCycles = 0; 
 			//string tmpString; // will be used during the file output
 			//tmpString.append(response.hit ? " hit" : " miss");
 			//tmpString.append(response.eviction ? " eviction" : "");
-			//unsigned long long totalCycles = response.cycles; // track the number of cycles used for both stages of the modify operation
+			//uint64_t totalCycles = response.cycles; // track the number of cycles used for both stages of the modify operation
 			// now process the write operation
 			cacheAccess(&response, true, address);
 			outfile << match.str(1) << match.str(2) << match.str(3);
-			outfile << " " << displayOperationResults();
+			displayOperationResults(outfile);
 			//tmpString.append(response.hit ? " hit" : " miss");
 			//tmpString.append(response.eviction ? " eviction" : "");
 			//totalCycles += response.cycles;
@@ -151,7 +159,7 @@ void CacheController::runTracefile() {
 
 	// add the final cache statistics
 	//outfile << "Hits: " << MemoryUnit::globalHits << " Misses: " << MemoryUnit::globalMisses << " Evictions: " << MemoryUnit::globalEvictions << endl;
-	outfile << "Cycles: " << MemoryUnit::globalCycles << " Reads: " << reads << " Writes: " << writes << endl;
+	outfile << "Cycles: " << MemoryUnit::totalGlobalCycles << " Reads: " << reads << " Writes: " << writes << endl;
 	
 	infile.close();
 	outfile.close();
@@ -161,10 +169,10 @@ void CacheController::runTracefile() {
 	This function allows us to read or write to the cache.
 	The read or write is indicated by isWrite.
 */
-void CacheController::cacheAccess(CacheResponse* response, bool isWrite, unsigned long long address) {
+void CacheController::cacheAccess(CacheResponse* response, bool isWrite, uint64_t address) {
 
-	isWrite ? caches.front()->write(address) : caches.front()->read(address);
-
+	//isWrite ? caches.front()->write(address) : caches.front()->read(address);
+	caches.front()->access(address, isWrite); 
 	*response = caches.front()->getLastResponse(); 
 	
 	if (response->hit)

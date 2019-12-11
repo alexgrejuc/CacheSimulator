@@ -7,6 +7,7 @@
 #ifndef _CACHESTUFF_H_
 #define _CACHESTUFF_H_
 #include <ctime>
+#include <cstdint>
 
 enum class ReplacementPolicy {
 	Random,
@@ -19,8 +20,8 @@ enum class WritePolicy {
 };
 
 struct addressInfo {
-	unsigned long long tag;
-	unsigned long long setIndex; 
+	uint64_t tag;
+	uint64_t setIndex; 
 };
 
 // structure to hold information about a particular cache
@@ -52,7 +53,7 @@ class Entry
 		Entry(bool valid); 
 		bool valid;
 		bool dirty;
-		unsigned long long tag;
+		uint64_t tag;
 };
 
 class TimedEntry : public Entry

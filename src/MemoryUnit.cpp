@@ -7,7 +7,7 @@
 using namespace std; 
 
 CacheSet::CacheSet() {
-	addressMap = unordered_map<unsigned long long, deque<Entry>::iterator>();
+	addressMap = unordered_map<uint64_t, deque<Entry>::iterator>();
 	data = deque<Entry>(); 
 }
 
@@ -16,7 +16,8 @@ CacheResponse MemoryUnit::getLastResponse() {
 }
 
 void MemoryUnit::updateGlobalCycles() {
-	globalCycles += lastResponse.cycles;
+	totalGlobalCycles += lastResponse.cycles;
+	operationGlobalCycles += lastResponse.cycles; 
 	/*lastResponse.hit ? globalHits++ : globalMisses++;
 	if (lastResponse.eviction) globalEvictions++;*/
 	//todo: update global dirty Eviction if needed 
@@ -24,7 +25,15 @@ void MemoryUnit::updateGlobalCycles() {
 
 
 // a RAM read so it must be a hit 
-void MemoryUnit::read(unsigned long long address) {
+void MemoryUnit::access(uint64_t address, bool isWrite) {
+	lastResponse.cycles = memoryAccessCycles;
+	lastResponse.dirtyEviction = lastResponse.eviction = false;
+	lastResponse.hit = true;
+	updateGlobalCycles(); 
+}
+
+// a RAM read so it must be a hit 
+void MemoryUnit::read(uint64_t address) {
 	lastResponse.cycles = memoryAccessCycles;
 	lastResponse.dirtyEviction = lastResponse.eviction = false;
 	lastResponse.hit = true;
@@ -32,7 +41,7 @@ void MemoryUnit::read(unsigned long long address) {
 }
 
 // a RAM write; has the same lastResponse as a read 
-void MemoryUnit::write(unsigned long long address) {
+void MemoryUnit::write(uint64_t address) {
 	read(address); 
 }
 
@@ -75,7 +84,7 @@ Cache::Cache(CacheConfig config, MemoryUnit* lowerLevel) {
 	sets = vector<CacheSet>();
 	
 	for(unsigned int i = 0; i < config.numberSets; ++i) {
-		sets.emplace_back(); // crash here? todo: uncomment the other stuff, add the display code and figure out what is wrong with this  
+		sets.emplace_back();  
 	}
 }
 
@@ -84,7 +93,7 @@ void Cache::say() {
 }
 
 string Cache::displayOperationResult() {
-	string s(std::to_string(lastResponse.cycles) + " L" + to_string(config.level));
+	string s("L" + to_string(config.level));
 	lastResponse.hit ? s += " hit" : s += " miss"; 
 	if (lastResponse.eviction) s += " eviction";
 
@@ -98,11 +107,11 @@ std::string Cache::displayLocalCounts() {
 }
 
 /* splits an address into its index and tag */
-addressInfo Cache::splitAddress(unsigned long long address) {
+addressInfo Cache::splitAddress(uint64_t address) {
 	addressInfo a;
-	unsigned long long blockAddress = address / config.blockSize;
-	unsigned long long setIndex = blockAddress % config.numberSets; 
-	unsigned long long tag = address / (config.numberSets * config.blockSize); // truncate the last n bits  
+	uint64_t blockAddress = address / config.blockSize;
+	uint64_t setIndex = blockAddress % config.numberSets; 
+	uint64_t tag = address / (config.numberSets * config.blockSize); // truncate the last n bits  
 	a.setIndex = setIndex;
 	a.tag = tag;
 	return  a; 
@@ -111,7 +120,7 @@ addressInfo Cache::splitAddress(unsigned long long address) {
 /* checks for a matching tag in this cache, looks down a level if not found
  * sets cache access cycles to the respective amount 
  */
-void Cache::read(unsigned long long address) {
+void Cache::read(uint64_t address) {
 	lastResponse.cycles = config.cacheAccessCycles;
 	
 	addressInfo info = splitAddress(address);
@@ -133,17 +142,19 @@ void Cache::read(unsigned long long address) {
 	updateCounts(); 
 }
 
-void Cache::write(unsigned long long address) {
+void Cache::write(uint64_t address) {
 	lastResponse.cycles = config.cacheAccessCycles;
 	lastResponse.dirtyEviction = lastResponse.eviction = false; 
+
 	addressInfo info = splitAddress(address);
 
 	ostringstream displayInfo;
 	displayInfo << "write " << address << " in L" << config.level << endl; 
 
+	// look for tag in set
 	if(sets[info.setIndex].addressMap.find(info.tag) != sets[info.setIndex].addressMap.end()) {
-		cout << "Found " << displayInfo.str(); 
 		lastResponse.hit = true;
+		cout << "Found " << displayInfo.str(); 
 
 		// if it is LRU then we need to move the element to the back of the deque to maintain usage order 
 		if(config.rp == ReplacementPolicy::LRU) {
@@ -154,13 +165,22 @@ void Cache::write(unsigned long long address) {
 		}
 
 		// todo: implement write through and write back
+
+		if(config.wp == WritePolicy::WriteBack) {
+			sets[info.setIndex].addressMap[info.tag]->dirty = true;
+		}
+		else if(config.wp == WritePolicy::WriteThrough) {
+			lowerLevel->write(address); 
+		}
 	}
 	else {
-		cout << "Missed " << displayInfo.str();
 		lastResponse.hit = false; 
-		lowerLevel->write(address);
+		cout << "Missed " << displayInfo.str();
 
-		if (sets[info.setIndex].data.size() == config.associativity) { // if the set is full then we need to evict
+		lowerLevel->read(address);
+
+		// is the set full? 
+		if (sets[info.setIndex].data.size() == config.associativity) {
 			lastResponse.eviction = true;
 			
 			deque<Entry>::iterator blockToErase;
@@ -169,7 +189,8 @@ void Cache::write(unsigned long long address) {
 				blockToErase = sets[info.setIndex].data.begin(); // since the deque keeps usage order, LRU is at the beginning 
 			}
 			else {
-				blockToErase = sets[info.setIndex].data.begin(); // todo: pick a random block
+				//blockToErase = sets[info.setIndex].data.begin(); // todo: pick a random block
+				//uint64_t randomSetIndex = rand() % config.associativity; 
 			}
 
 			if(blockToErase->dirty) {
@@ -189,3 +210,77 @@ void Cache::write(unsigned long long address) {
 }
 
 
+void Cache::access(uint64_t address, bool isWrite) {
+	lastResponse.cycles = config.cacheAccessCycles;
+	lastResponse.dirtyEviction = lastResponse.eviction = false; 
+
+	addressInfo info = splitAddress(address);
+
+	ostringstream displayInfo;
+	if (isWrite) {
+		displayInfo << "write";
+	}
+	else {
+		displayInfo << "read"; 
+	}
+	
+	displayInfo << " " << address << " in L" << config.level << endl; 
+
+	// look for tag in set
+	if(sets[info.setIndex].addressMap.find(info.tag) != sets[info.setIndex].addressMap.end()) {
+		lastResponse.hit = true;
+		cout << "Found " << displayInfo.str(); 
+
+		// if it is LRU then we need to move the element to the back of the deque to maintain usage order 
+		if(config.rp == ReplacementPolicy::LRU) {
+			Entry temp = *sets[info.setIndex].addressMap[info.tag];							// get  a copy of the entry 
+			sets[info.setIndex].data.erase(sets[info.setIndex].addressMap[info.tag]);		// erase the entry
+			sets[info.setIndex].data.push_back(temp);										// put the entry at the back to give it MRU status
+			sets[info.setIndex].addressMap[info.tag] = --sets[info.setIndex].data.end();	// map value points to the updated position of the block 
+		}
+
+		// todo: implement write through and write back
+		if (isWrite) {
+			if (config.wp == WritePolicy::WriteBack) {
+				sets[info.setIndex].addressMap[info.tag]->dirty = true;
+			}
+			else if (config.wp == WritePolicy::WriteThrough) {
+				lowerLevel->write(address);
+			}
+		}
+	}
+	else {
+		lastResponse.hit = false; 
+		cout << "Missed " << displayInfo.str();
+
+		lowerLevel->read(address);
+
+		// is the set full? 
+		if (sets[info.setIndex].data.size() == config.associativity) {
+			lastResponse.eviction = true;
+			
+			deque<Entry>::iterator blockToErase;
+
+			if (config.rp == ReplacementPolicy::LRU) {
+				blockToErase = sets[info.setIndex].data.begin(); // since the deque keeps usage order, LRU is at the beginning 
+			}
+			else {
+				//blockToErase = sets[info.setIndex].data.begin(); // todo: pick a random block
+				//uint64_t randomSetIndex = rand() % config.associativity; 
+			}
+
+			if(blockToErase->dirty) {
+				lastResponse.dirtyEviction = true;
+				// todo 
+			}
+
+			// todo evict and dirty and all that
+			sets[info.setIndex].data.erase(blockToErase);
+		}
+
+		sets[info.setIndex].data.emplace_back(true); // insert a valid block at the end 
+		sets[info.setIndex].addressMap[info.tag] = --sets[info.setIndex].data.end();
+	}
+
+	updateCounts(); 
+}
