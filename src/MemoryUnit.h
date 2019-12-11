@@ -28,6 +28,23 @@ public:
 	virtual void say(); 
 };
 
+class CacheSetNode {
+	CacheSetNode* prev, *next;
+	Entry entry;
+
+public:
+	CacheSetNode(CacheSetNode* prev, Entry e, CacheSetNode* next); 
+};
+
+class CacheSet2 {
+	CacheSetNode* last;
+	std::unordered_map<uint64_t, CacheSetNode*> map;
+
+	public:
+	void pushBack(uint64_t, Entry);
+	void erase(CacheSetNode* node); 
+};
+
 class CacheSet {
 public:
 	// a map from tags to indexes in the deque
@@ -42,6 +59,24 @@ public:
 	void writeAndUpdateUsage(uint64_t);
 	void write();
 	void erase(iterator*/
+
+	//CacheSet* next;
+	//CacheSet* prev; 
+};
+
+class Set {
+public:
+	virtual bool contains(uint64_t tag) = 0;
+	virtual void update(uint64_t tag, Entry) = 0;
+	virtual void erase(uint64_t tag) = 0; 
+};
+
+class directMappedSet : public Set {
+	Entry entry; 
+public:
+	bool contains(uint64_t tag);
+	void update(uint64_t tag, Entry);
+	void erase(uint64_t tag); 
 };
 
 class Cache : public MemoryUnit {

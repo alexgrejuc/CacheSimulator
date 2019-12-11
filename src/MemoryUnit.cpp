@@ -216,7 +216,7 @@ void Cache::access(uint64_t address, bool isWrite) {
 
 	addressInfo info = splitAddress(address);
 
-	ostringstream displayInfo;
+	stringstream displayInfo;
 	if (isWrite) {
 		displayInfo << "write";
 	}
@@ -224,7 +224,12 @@ void Cache::access(uint64_t address, bool isWrite) {
 		displayInfo << "read"; 
 	}
 	
-	displayInfo << " " << address << " in L" << config.level << endl; 
+	displayInfo << " " << address << " in L" << config.level << endl;
+
+	//todo: remove! 
+	if(sets[info.setIndex].addressMap.size() > config.associativity || sets[info.setIndex].data.size() > config.associativity) {
+		runtime_error("Improper cache management ya dumb fuck"); 
+	}
 
 	// look for tag in set
 	if(sets[info.setIndex].addressMap.find(info.tag) != sets[info.setIndex].addressMap.end()) {
@@ -265,7 +270,7 @@ void Cache::access(uint64_t address, bool isWrite) {
 				blockToErase = sets[info.setIndex].data.begin(); // since the deque keeps usage order, LRU is at the beginning 
 			}
 			else {
-				//blockToErase = sets[info.setIndex].data.begin(); // todo: pick a random block
+				blockToErase = sets[info.setIndex].data.begin(); // todo: pick a random block
 				//uint64_t randomSetIndex = rand() % config.associativity; 
 			}
 
@@ -274,12 +279,15 @@ void Cache::access(uint64_t address, bool isWrite) {
 				// todo 
 			}
 
+			sets[info.setIndex].addressMap.erase(blockToErase->tag); 
 			// todo evict and dirty and all that
 			sets[info.setIndex].data.erase(blockToErase);
 		}
 
-		sets[info.setIndex].data.emplace_back(true); // insert a valid block at the end 
-		sets[info.setIndex].addressMap[info.tag] = --sets[info.setIndex].data.end();
+		Entry e(info.tag);
+		if (isWrite) e.dirty = true;
+		sets[info.setIndex].data.push_back(e);							// insert a valid block at the end 
+		sets[info.setIndex].addressMap[info.tag] = --sets[info.setIndex].data.end();	
 	}
 
 	updateCounts(); 

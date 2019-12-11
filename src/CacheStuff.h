@@ -49,24 +49,12 @@ struct CacheResponse {
 class Entry
 {
 	public: 
-		Entry(); 
-		Entry(bool valid); 
+		//Entry(); 
+		//Entry(bool valid); 
+		Entry(uint64_t tag, bool dirty = false); 
 		bool valid;
 		bool dirty;
 		uint64_t tag;
 };
-
-class TimedEntry : public Entry
-{
-	public:
-		clock_t lastUsed;
-		TimedEntry(); 
-};
-
-inline TimedEntry::TimedEntry()
-{
-	lastUsed = 0; 
-}
-
 
 #endif //CACHESTUFF
