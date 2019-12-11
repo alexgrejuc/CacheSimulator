@@ -302,15 +302,6 @@ void Cache::access(uint64_t address, bool isWrite) {
 			Entry e = sets[info.setIndex]->pop();
 			sets[info.setIndex]->update(e); 
 		}
-
-		if (isWrite) {
-			if (config.wp == WritePolicy::WriteBack) {
-				sets[info.setIndex]->update(Entry(info.tag, true)); // set the dirty bit  
-			}
-			else if (config.wp == WritePolicy::WriteThrough) {
-				lowerLevel->access(address, true); 
-			}
-		}
 	}
 	else {
 		lastResponse.hit = false;
@@ -338,13 +329,22 @@ void Cache::access(uint64_t address, bool isWrite) {
 				lowerLevel->access(erased.tag, true); // write the dirty block to the lower level  
 			}
 		}
-
-		Entry e(info.tag);
-		if (isWrite && config.wp == WritePolicy::WriteBack) e.dirty = true;
-		
-		sets[info.setIndex]->update(e); 
 	}
 
-	cout << displayLocalCounts() << endl; 
+	Entry e(info.tag);
+	//if (isWrite && config.wp == WritePolicy::WriteBack) e.dirty = true;
+	
+	if (isWrite) {
+		if (config.wp == WritePolicy::WriteBack) {
+			//sets[info.setIndex]->update(Entry(info.tag, true)); // set the dirty bit  
+			e.dirty = true; 
+		}
+		else if (config.wp == WritePolicy::WriteThrough) {
+			lowerLevel->access(address, true); 
+		}
+	}
+
+	sets[info.setIndex]->update(e); 
+
 	updateCounts(); 
 }
