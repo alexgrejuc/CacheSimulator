@@ -7,6 +7,7 @@
 #ifndef _MEMORY_UNIT_
 #define _MEMORY_UNIT_
 
+#define DEBUG 0 
 
 class MemoryUnit {
 	unsigned int memoryAccessCycles;

@@ -40,11 +40,13 @@ void RandomSet::update(Entry e) {
 		entries.push_back(e); 
 	}
 
+#if DEBUG
 	cout << "tags are:";
 	for (auto entry : entries) {
 		cout << " " << entry.tag; 
 	}
 	cout << endl; 
+#endif 
 }
 
 // pop a random entry 
@@ -58,7 +60,6 @@ Entry RandomSet::pop() {
 	}
 	
 	Entry popped = *it;
-	cout << "tag is " << popped.tag << endl; 
 	entries.erase(it);
 	return popped; 
 }
@@ -94,11 +95,13 @@ void LRUSet::update(Entry e) {
 
 	entries.push_back(e); 
 
+#if DEBUG
 	cout << "tags are:";
 	for (auto entry : entries) {
 		cout << " " << entry.tag; 
 	}
-	cout << endl; 
+	cout << endl;
+#endif
 }
 
 Entry LRUSet::pop() {
@@ -274,6 +277,7 @@ void Cache::access(uint64_t address, bool isWrite) {
 
 	const addressInfo info = splitAddress(address);
 
+#if DEBUG
 	stringstream displayInfo;
 	if (isWrite) {
 		displayInfo << "write";
@@ -283,11 +287,14 @@ void Cache::access(uint64_t address, bool isWrite) {
 	}
 	
 	displayInfo << " " << address << " with set " << info.setIndex << " and tag " << info.tag << " (decimal) in L" << config.level << endl;
+#endif
 
 	// look for tag in set
 	if(sets[info.setIndex]->contains(info.tag)) {
 		lastResponse.hit = true;
-		cout << "Found " << displayInfo.str(); 
+#if DEBUG
+		cout << "Found " << displayInfo.str();
+#endif
 
 		// if it is LRU then we need to update the last usage  
 		if(config.rp == ReplacementPolicy::LRU) {
@@ -305,9 +312,10 @@ void Cache::access(uint64_t address, bool isWrite) {
 		}
 	}
 	else {
-		lastResponse.hit = false; 
+		lastResponse.hit = false;
+#if DEBUG
 		cout << "Missed " << displayInfo.str();
-
+#endif
 		// in either a read or write miss we need to fetch the block into the cache 
 		lowerLevel->read(address);
 
@@ -316,11 +324,15 @@ void Cache::access(uint64_t address, bool isWrite) {
 			lastResponse.eviction = true;
 			
 			Entry erased = sets[info.setIndex]->pop();
+#if DEBUG
 			cout << "evicting " << erased.tag << endl; 
-
+#endif
 			if(erased.dirty) {
-				assert(config.wp == WritePolicy::WriteBack); // todo: remove 
-				cout << "Dirty eviction"; 
+				assert(config.wp == WritePolicy::WriteBack); // todo: remove
+#if DEBUG
+				cout << "Dirty eviction";
+#endif
+
 				lastResponse.dirtyEviction = true;
 				lowerLevel->access(erased.tag, true); // write the dirty block to the lower level  
 			}

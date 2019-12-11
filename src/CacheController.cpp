@@ -105,7 +105,7 @@ void CacheController::runTracefile() {
 			// skip over comments and CPU instructions
 			continue;
 		} else if (std::regex_match(line, match, loadPattern)) {
-			cout << "Found a load op!" << endl;
+			//cout << "Found a load op!" << endl;
 			istringstream hexStream(match.str(2));
 			hexStream >> std::hex >> address;
 			outfile << match.str(1) << match.str(2) << match.str(3);
@@ -114,7 +114,7 @@ void CacheController::runTracefile() {
 			//outfile << " " << response.cycles << (response.hit ? " hit" : " miss") << (response.eviction ? " eviction" : "");
 			reads++; 
 		} else if (std::regex_match(line, match, storePattern)) {
-			cout << "Found a store op!" << endl;
+			//cout << "Found a store op!" << endl;
 			istringstream hexStream(match.str(2));
 			hexStream >> std::hex >> address;
 			outfile << match.str(1) << match.str(2) << match.str(3);
@@ -123,7 +123,7 @@ void CacheController::runTracefile() {
 			//outfile << " " << response.cycles << (response.hit ? " hit" : " miss") << (response.eviction ? " eviction" : "");
 			writes++; 
 		} else if (std::regex_match(line, match, modifyPattern)) {
-			cout << "Found a modify op!" << endl;
+			//cout << "Found a modify op!" << endl;
 			istringstream hexStream(match.str(2));
 			hexStream >> std::hex >> address;
 			outfile << match.str(1) << match.str(2) << match.str(3);
@@ -174,13 +174,15 @@ void CacheController::cacheAccess(CacheResponse* response, bool isWrite, uint64_
 	//isWrite ? caches.front()->write(address) : caches.front()->read(address);
 	caches.front()->access(address, isWrite); 
 	*response = caches.front()->getLastResponse(); 
-	
+
+#if DEBUG
 	if (response->hit)
 		cout << "Address " << std::hex << address << " was a hit." << endl;
 	else
 		cout << "Address " << std::hex << address << " was a miss." << endl;
-
 	cout << "-----------------------------------------" << endl;
+#endif
+
 }
 
 /*
