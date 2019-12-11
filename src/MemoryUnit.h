@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <deque>
 #include <memory>
+#include <list>
 #ifndef _MEMORY_UNIT_
 #define _MEMORY_UNIT_
 
@@ -35,6 +36,7 @@ public:
 	virtual void update(Entry) =0;
 	virtual Entry pop() =0; 
 	virtual bool isFull() =0;
+	virtual ~Set(); 
 };
 
 class DirectMappedSet : public Set {
@@ -45,6 +47,17 @@ public:
 	Entry pop(); 
 	bool isFull();
 	DirectMappedSet(); 
+};
+
+class AssociativeSet : public Set {
+	uint64_t capacity; 
+	std::list<Entry> entries; 
+public:
+	bool contains(uint64_t tag);
+	void update(Entry);
+	Entry pop(); 
+	bool isFull();
+	AssociativeSet(uint64_t capacity); 
 };
 
 class Cache : public MemoryUnit {
@@ -60,7 +73,8 @@ public:
 	void access(uint64_t address, bool isWrite);
 	void say(); 
 	std::string displayOperationResult();							// ex: "L1 miss eviction" 
-	std::string displayLocalCounts();						// ex: "L1 Cache Hits: 10 Misses: 10..."  
+	std::string displayLocalCounts();						// ex: "L1 Cache Hits: 10 Misses: 10..."
+	~Cache(); 
 };
 
 #endif

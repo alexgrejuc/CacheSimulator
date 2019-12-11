@@ -7,6 +7,46 @@
 
 using namespace std; 
 
+Set::~Set(){}
+
+AssociativeSet::AssociativeSet(uint64_t capacity) {
+	entries = list<Entry>();
+	this->capacity = capacity; 
+}
+
+bool AssociativeSet::contains(uint64_t tag) {
+	for (Entry entry : entries) {
+		if (entry.tag == tag) return  true; 
+	}
+
+	return false; 
+}
+
+void AssociativeSet::update(Entry e) {
+	auto it = entries.begin(); 
+
+	// look for the entry 
+	for(; it != entries.end(); ++it) {
+		if (it->tag == e.tag) break; // found 
+	}
+
+	if(it != entries.end()) {
+		entries.erase(it); // erase it so we can push it to the back 
+	}
+
+	entries.push_back(e); 
+}
+
+Entry AssociativeSet::pop() {
+	Entry popped = *entries.begin(); 
+	entries.erase(entries.begin());
+	return popped; 
+}
+
+bool AssociativeSet::isFull() {
+	return entries.size() == capacity; 
+}
+
 DirectMappedSet::DirectMappedSet() {
 	entry = Entry(); 
 }
@@ -99,16 +139,35 @@ Cache::Cache(CacheConfig config, MemoryUnit* lowerLevel) {
 	this->config = config;
 	this->lowerLevel = lowerLevel; 
 
-	if (config.associativity == 1) {
+	sets = vector<Set*>(); 
+
+	/*if (config.associativity == 1) {
 		sets = vector<Set*>(); 
 	}
 	else {
+		
 		//todo 
 		sets = vector<Set*>(); 
+	}*/
+
+	if (config.associativity == 1) {
+		for (unsigned int i = 0; i < config.numberSets; ++i) {
+			sets.push_back(new DirectMappedSet());
+		}
 	}
-	
-	for(unsigned int i = 0; i < config.numberSets; ++i) {
-		sets.push_back(new DirectMappedSet()); 
+	else if(config.rp == ReplacementPolicy::LRU) {
+		for (unsigned int i = 0; i < config.numberSets; ++i) {
+			sets.push_back(new AssociativeSet(config.associativity));
+		}
+	}
+	else {
+				
+	}
+}
+
+Cache::~Cache() {
+	for (auto set : sets) {
+		delete set; 
 	}
 }
 
