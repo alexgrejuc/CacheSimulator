@@ -19,8 +19,8 @@ public:
 	static unsigned int totalGlobalCycles;
 	static unsigned int operationGlobalCycles;
 
-	virtual void read(uint64_t address); 
-	virtual void write(uint64_t address);
+	//virtual void read(uint64_t address); 
+	//virtual void write(uint64_t address);
 	virtual void access(uint64_t address, bool isWrite);
 	CacheResponse getLastResponse();
 	MemoryUnit(unsigned int memoryAccessCycles); 

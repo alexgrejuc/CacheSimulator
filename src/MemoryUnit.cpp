@@ -19,7 +19,7 @@ RandomSet::RandomSet(uint64_t capacity) {
 
 bool RandomSet::contains(uint64_t tag) {
 	for (Entry entry : entries) {
-		if (entry.tag == tag) return  true; 
+		if (entry.tag == tag) return true; 
 	}
 
 	return false; 
@@ -158,17 +158,17 @@ void MemoryUnit::access(uint64_t address, bool isWrite) {
 }
 
 // a RAM read so it must be a hit 
-void MemoryUnit::read(uint64_t address) {
+/*void MemoryUnit::read(uint64_t address) {
 	lastResponse.cycles = memoryAccessCycles;
 	lastResponse.dirtyEviction = lastResponse.eviction = false;
 	lastResponse.hit = true;
 	updateGlobalCycles(); 
-}
+}*/
 
 // a RAM write; has the same lastResponse as a read 
-void MemoryUnit::write(uint64_t address) {
+/*void MemoryUnit::write(uint64_t address) {
 	read(address); 
-}
+}*/
 
 void MemoryUnit::say() {
 	cout << "RAM" << endl; 
@@ -243,7 +243,8 @@ Cache::~Cache() {
 }
 
 void Cache::say() {
-	cout << "Cache" << endl; 
+	cout << "Cache" << config.level << " connected to ";
+	lowerLevel->say(); 
 }
 
 string Cache::displayOperationResult() {
@@ -307,7 +308,7 @@ void Cache::access(uint64_t address, bool isWrite) {
 				sets[info.setIndex]->update(Entry(info.tag, true)); // set the dirty bit  
 			}
 			else if (config.wp == WritePolicy::WriteThrough) {
-				lowerLevel->write(address); 
+				lowerLevel->access(address, true); 
 			}
 		}
 	}
@@ -317,8 +318,8 @@ void Cache::access(uint64_t address, bool isWrite) {
 		cout << "Missed " << displayInfo.str();
 #endif
 		// in either a read or write miss we need to fetch the block into the cache 
-		lowerLevel->read(address);
-
+		lowerLevel->access(address, false); 
+		
 		// is the set full? 
 		if (sets[info.setIndex]->isFull()) {
 			lastResponse.eviction = true;
@@ -344,5 +345,6 @@ void Cache::access(uint64_t address, bool isWrite) {
 		sets[info.setIndex]->update(e); 
 	}
 
+	cout << displayLocalCounts() << endl; 
 	updateCounts(); 
 }

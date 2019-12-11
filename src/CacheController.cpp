@@ -38,7 +38,7 @@ CacheController::CacheController(list<CacheConfig> cacheConfigs, unsigned int me
 	}
 
 	for (auto cache : caches) {
-		cache->say(); 
+		cache->say();
 	}
 	
 	// initialize the counters

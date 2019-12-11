@@ -1,0 +1,14 @@
+L 7,1 1001 L1 miss
+L 81,1 1001 L1 miss eviction
+L 84,1 1 L1 hit
+L 3a,1 1001 L1 miss
+L A1,1 1001 L1 miss
+L 400,1 1001 L1 miss eviction
+L 1e,1 1001 L1 miss
+L 88,1 1001 L1 miss eviction
+L c30,1 1001 L1 miss eviction
+L 3d,1 1001 L1 miss eviction
+L af,1 1 L1 hit
+L 884,1 1001 L1 miss eviction
+L1 Cache: Hits: 2 Misses: 10 Evictions: 6
+Cycles: 10012 Reads: 12 Writes: 0

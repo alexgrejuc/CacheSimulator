@@ -1,0 +1,14 @@
+L 7,1 1001 L1 miss
+L 81,1 1001 L1 miss
+L 84,1 1 L1 hit
+L 3a,1 1001 L1 miss
+L A1,1 1001 L1 miss
+L 400,1 1001 L1 miss
+L 1e,1 1001 L1 miss
+L 88,1 1 L1 hit
+L c30,1 1001 L1 miss
+L 3d,1 1 L1 hit
+L af,1 1 L1 hit
+L 884,1 1001 L1 miss
+L1 Cache: Hits: 4 Misses: 8 Evictions: 0
+Cycles: 8012 Reads: 12 Writes: 0
