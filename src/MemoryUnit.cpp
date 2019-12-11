@@ -3,6 +3,7 @@
 #include <sstream>
 #include "CacheStuff.h"
 #include <cmath>
+#include  <assert.h>
 
 using namespace std; 
 
@@ -154,25 +155,25 @@ void Cache::access(uint64_t address, bool isWrite) {
 		displayInfo << "read"; 
 	}
 	
-	displayInfo << " " << address << " in L" << config.level << endl;
+	displayInfo << " " << address << " with set " << info.setIndex << " and tag " << info.tag << " in L" << config.level << endl;
 
 	// look for tag in set
 	if(sets[info.setIndex]->contains(info.tag)) {
 		lastResponse.hit = true;
 		cout << "Found " << displayInfo.str(); 
 
-		// if it is LRU then we need to move the element to the back of the deque to maintain usage order 
+		// if it is LRU then we need to update the last usage  
 		if(config.rp == ReplacementPolicy::LRU) {
-			// do!
+			Entry e = sets[info.setIndex]->pop();
+			sets[info.setIndex]->update(e); 
 		}
 
-		// todo: implement write through and write back
 		if (isWrite) {
 			if (config.wp == WritePolicy::WriteBack) {
-				sets[info.setIndex]->update(Entry(info.tag, true)); 
+				sets[info.setIndex]->update(Entry(info.tag, true)); // set the dirty bit  
 			}
 			else if (config.wp == WritePolicy::WriteThrough) {
-				lowerLevel->write(address);
+				lowerLevel->write(address); 
 			}
 		}
 	}
@@ -180,6 +181,7 @@ void Cache::access(uint64_t address, bool isWrite) {
 		lastResponse.hit = false; 
 		cout << "Missed " << displayInfo.str();
 
+		// in either a read or write miss we need to fetch the block into the cache 
 		lowerLevel->read(address);
 
 		// is the set full? 
@@ -189,13 +191,15 @@ void Cache::access(uint64_t address, bool isWrite) {
 			Entry erased = sets[info.setIndex]->pop(); 
 
 			if(erased.dirty) {
+				assert(config.wp == WritePolicy::WriteBack); // todo: remove 
+				cout << "Dirty eviction"; 
 				lastResponse.dirtyEviction = true;
-				// todo 
+				lowerLevel->access(erased.tag, true); // write the dirty block to the lower level  
 			}
 		}
 
 		Entry e(info.tag);
-		if (isWrite) e.dirty = true;
+		if (isWrite && config.wp == WritePolicy::WriteBack) e.dirty = true;
 		
 		sets[info.setIndex]->update(e); 
 	}
