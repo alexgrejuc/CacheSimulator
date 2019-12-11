@@ -3,18 +3,21 @@
 #include <sstream>
 #include "CacheStuff.h"
 #include <cmath>
-#include  <assert.h>
+#include <cassert>
+#include <cstdio>
+#include <cstdlib>
+#include <ctime>
 
 using namespace std; 
 
 Set::~Set(){}
 
-AssociativeSet::AssociativeSet(uint64_t capacity) {
+RandomSet::RandomSet(uint64_t capacity) {
 	entries = list<Entry>();
 	this->capacity = capacity; 
 }
 
-bool AssociativeSet::contains(uint64_t tag) {
+bool RandomSet::contains(uint64_t tag) {
 	for (Entry entry : entries) {
 		if (entry.tag == tag) return  true; 
 	}
@@ -22,7 +25,62 @@ bool AssociativeSet::contains(uint64_t tag) {
 	return false; 
 }
 
-void AssociativeSet::update(Entry e) {
+void RandomSet::update(Entry e) {
+	auto it = entries.begin(); 
+
+	// look for the entry 
+	for(; it != entries.end(); ++it) {
+		if (it->tag == e.tag) break; // found 
+	}
+
+	if(it != entries.end()) {
+		*it = e; 
+	}
+	else {
+		entries.push_back(e); 
+	}
+
+	cout << "tags are:";
+	for (auto entry : entries) {
+		cout << " " << entry.tag; 
+	}
+	cout << endl; 
+}
+
+// pop a random entry 
+Entry RandomSet::pop() {
+	int randIndex = rand() % entries.size();
+
+	auto it = entries.begin(); 
+
+	for(int i = 0; i < randIndex; i++) {
+		it++; 
+	}
+	
+	Entry popped = *it;
+	cout << "tag is " << popped.tag << endl; 
+	entries.erase(it);
+	return popped; 
+}
+
+bool RandomSet::isFull() {
+	return entries.size() == capacity; 
+}
+
+LRUSet::LRUSet(uint64_t capacity) {
+	entries = list<Entry>();
+	this->capacity = capacity; 
+}
+
+bool LRUSet::contains(uint64_t tag) {
+	for (Entry entry : entries) {
+		if (entry.tag == tag) return  true; 
+	}
+
+	return false; 
+}
+
+void LRUSet::update(Entry e) {
 	auto it = entries.begin(); 
 
 	// look for the entry 
@@ -35,15 +93,21 @@ void AssociativeSet::update(Entry e) {
 	}
 
 	entries.push_back(e); 
+
+	cout << "tags are:";
+	for (auto entry : entries) {
+		cout << " " << entry.tag; 
+	}
+	cout << endl; 
 }
 
-Entry AssociativeSet::pop() {
+Entry LRUSet::pop() {
 	Entry popped = *entries.begin(); 
 	entries.erase(entries.begin());
 	return popped; 
 }
 
-bool AssociativeSet::isFull() {
+bool LRUSet::isFull() {
 	return entries.size() == capacity; 
 }
 
@@ -157,11 +221,15 @@ Cache::Cache(CacheConfig config, MemoryUnit* lowerLevel) {
 	}
 	else if(config.rp == ReplacementPolicy::LRU) {
 		for (unsigned int i = 0; i < config.numberSets; ++i) {
-			sets.push_back(new AssociativeSet(config.associativity));
+			sets.push_back(new LRUSet(config.associativity));
 		}
 	}
 	else {
-				
+		for (unsigned int i = 0; i < config.numberSets; ++i) {
+			sets.push_back(new RandomSet(config.associativity));
+		}
+
+		srand(time(NULL)); 
 	}
 }
 
@@ -204,7 +272,7 @@ void Cache::access(uint64_t address, bool isWrite) {
 	lastResponse.cycles = config.cacheAccessCycles;
 	lastResponse.dirtyEviction = lastResponse.eviction = false; 
 
-	addressInfo info = splitAddress(address);
+	const addressInfo info = splitAddress(address);
 
 	stringstream displayInfo;
 	if (isWrite) {
@@ -214,7 +282,7 @@ void Cache::access(uint64_t address, bool isWrite) {
 		displayInfo << "read"; 
 	}
 	
-	displayInfo << " " << address << " with set " << info.setIndex << " and tag " << info.tag << " in L" << config.level << endl;
+	displayInfo << " " << address << " with set " << info.setIndex << " and tag " << info.tag << " (decimal) in L" << config.level << endl;
 
 	// look for tag in set
 	if(sets[info.setIndex]->contains(info.tag)) {
@@ -247,7 +315,8 @@ void Cache::access(uint64_t address, bool isWrite) {
 		if (sets[info.setIndex]->isFull()) {
 			lastResponse.eviction = true;
 			
-			Entry erased = sets[info.setIndex]->pop(); 
+			Entry erased = sets[info.setIndex]->pop();
+			cout << "evicting " << erased.tag << endl; 
 
 			if(erased.dirty) {
 				assert(config.wp == WritePolicy::WriteBack); // todo: remove 

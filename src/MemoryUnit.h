@@ -49,7 +49,7 @@ public:
 	DirectMappedSet(); 
 };
 
-class AssociativeSet : public Set {
+class LRUSet : public Set {
 	uint64_t capacity; 
 	std::list<Entry> entries; 
 public:
@@ -57,7 +57,18 @@ public:
 	void update(Entry);
 	Entry pop(); 
 	bool isFull();
-	AssociativeSet(uint64_t capacity); 
+	LRUSet(uint64_t capacity); 
+};
+
+class RandomSet : public Set {
+	uint64_t capacity; 
+	std::list<Entry> entries; 
+public:
+	bool contains(uint64_t tag);
+	void update(Entry);
+	Entry pop(); 
+	bool isFull();
+	RandomSet(uint64_t capacity); 
 };
 
 class Cache : public MemoryUnit {
