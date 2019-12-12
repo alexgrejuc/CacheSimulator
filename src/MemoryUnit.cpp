@@ -273,7 +273,8 @@ addressInfo Cache::splitAddress(uint64_t address) {
 }
 
 void Cache::access(uint64_t address, bool isWrite) {
-	lastResponse.cycles = config.cacheAccessCycles;
+	lastResponse.cycles = 0; 
+	//lastResponse.cycles = config.cacheAccessCycles; // load, store hit and miss all have a cache access 
 	lastResponse.dirtyEviction = lastResponse.eviction = false; 
 
 	const addressInfo info = splitAddress(address);
@@ -297,20 +298,20 @@ void Cache::access(uint64_t address, bool isWrite) {
 		cout << "Found " << displayInfo.str();
 #endif
 
+		//lastResponse.cycles = config.cacheAccessCycles;
 		// if it is LRU then we need to update the last usage  
-		if(config.rp == ReplacementPolicy::LRU) {
-			Entry e = sets[info.setIndex]->pop();
+		/*if(config.rp == ReplacementPolicy::LRU) {
+			//Entry e = sets[info.setIndex]->pop();
+			//sets[info.setIndex]->update(e);
+			Entry e = Entry(info.tag, false, true); 
 			sets[info.setIndex]->update(e); 
-		}
+		}*/
 	}
 	else {
 		lastResponse.hit = false;
 #if DEBUG
 		cout << "Missed " << displayInfo.str();
-#endif
-		// in either a read or write miss we need to fetch the block into the cache 
-		lowerLevel->access(address, false); 
-		
+#endif	
 		// is the set full? 
 		if (sets[info.setIndex]->isFull()) {
 			lastResponse.eviction = true;
@@ -322,28 +323,35 @@ void Cache::access(uint64_t address, bool isWrite) {
 			if(erased.dirty) {
 				assert(config.wp == WritePolicy::WriteBack); // todo: remove
 #if DEBUG
-				cout << "Dirty eviction";
+				cout << "Dirty eviction" << endl;
 #endif
 
 				lastResponse.dirtyEviction = true;
-				lowerLevel->access(erased.tag, true); // write the dirty block to the lower level  
+				lowerLevel->access(erased.tag, true); // write the dirty block to the lower level
 			}
 		}
+
+		// in either a read or write miss we need to fetch the block into the cache 
+		lowerLevel->access(address, false);									// cycles for fetching from lower level
+		if (isWrite) lastResponse.cycles += config.cacheAccessCycles;				// cycles to write the fetched block to this cache 
 	}
 
 	Entry e(info.tag);
 	//if (isWrite && config.wp == WritePolicy::WriteBack) e.dirty = true;
 	
 	if (isWrite) {
+		//lastResponse.cycles += config.cacheAccessCycles; // ??? 
 		if (config.wp == WritePolicy::WriteBack) {
 			//sets[info.setIndex]->update(Entry(info.tag, true)); // set the dirty bit  
-			e.dirty = true; 
+			e.dirty = true;
 		}
 		else if (config.wp == WritePolicy::WriteThrough) {
-			lowerLevel->access(address, true); 
+			lowerLevel->access(address, true);							// cycles to write the new data to the lower level  
 		}
 	}
 
+	
+	lastResponse.cycles += config.cacheAccessCycles; // cycles to either write the new data to the block or read the block   
 	sets[info.setIndex]->update(e); 
 
 	updateCounts(); 
